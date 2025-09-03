@@ -1,0 +1,33 @@
+{
+  "name": "gupta-typescript-converter",
+  "version": "0.0.1",
+  "bin": {
+    "gupta-typescript-converter": "./build/cli.js"
+  },
+  "type": "module",
+  "files": [
+    "build/cli.js",
+    "build/meta.js"
+  ],
+  "dependencies": {
+    "@types/prompts": "2.4.9",
+    "brocolito": "6.1.1",
+    "prompts": "2.4.2"
+  },
+  "scripts": {
+    "lint": "pnpm lint:es && pnpm lint:ts",
+    "lint:es": "eslint . --max-warnings 0",
+    "lint:ts": "tsc",
+    "prepare": "brocolito bun",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.27.0",
+    "@types/bun": "1.2.15",
+    "eslint": "9.27.0",
+    "eslint-plugin-prettier": "5.4.0",
+    "prettier": "3.5.3",
+    "typescript": "5.8.3",
+    "typescript-eslint": "8.32.1"
+  }
+}

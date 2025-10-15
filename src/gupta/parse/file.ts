@@ -114,14 +114,14 @@ const sanitizeStatement = (str: string) => {
 // NOT < -> >=
 // NOT >= -> <
 // NOT > -> <=
-const sanitizeCondition = (cond: string) =>
+export const sanitizeCondition = (cond: string) =>
   sanitizeStatement(cond)
     // OR -> ||
     .replace(/(\s)or(\s)/gi, "$1||$2")
     // AND -> &&
     .replace(/(\s)and(\s)/gi, "$1&&$2")
     // NOT === -> !==
-    .replace(/([^a-z0-9_])not\s([^=]+\s?)===/gi, "$1$2!==")
+    .replace(/([^a-z0-9_])not\s([^=(]+\s?)===/gi, "$1$2!==")
     .replace(/^not\s([^=]+\s?)===/gi, "$1!==")
     // NOT -> !
     .replace(/([^a-z0-9_])not\s/gi, "$1!")

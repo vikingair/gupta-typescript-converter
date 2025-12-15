@@ -38,6 +38,7 @@ const BLACK_LIST_OBJECTS = new Set([
 // including especially the transformation of string templates from Gupta to TypeScript
 // :foo_bar -> ${foo_bar}
 // :arr[entry] -> ${arr[entry]}
+// :foo.bar -> ${foo.bar}
 const sanitizeStatement = (str: string) => {
   let quote = "";
   let templateVar = "";
@@ -64,7 +65,7 @@ const sanitizeStatement = (str: string) => {
         } else if (c === "[") {
           templateVar += c;
           templateBracketOpen = true;
-        } else if (/[a-z0-9_]/i.test(c)) {
+        } else if (/[a-z0-9_.]/i.test(c)) {
           templateVar += c;
         } else {
           result += "${" + templateVar + "}" + c;

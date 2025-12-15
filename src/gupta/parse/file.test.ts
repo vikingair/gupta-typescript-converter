@@ -10,5 +10,23 @@ describe("wawi gupta parse - file", () => {
     ).toBe(
       "If ( iv_foo[nIndex] > 0  )  && ( ( gv_settings.GetFoo() ) || !( ( iv_bar === 1 ) && ( iv_thing[nIndex] === 1 ) ) )",
     );
+
+    expect(
+      sanitizeCondition(
+        `"
+  INSERT INTO
+    MY_TABLE
+    ( FIELD_1, FIELD_2, FIELD_3, FIELD_4 )
+  VALUES
+    ( :myVar.id, :other_var.foo, :thing, :foo[index] )"`,
+      ),
+    ).toBe(
+      `\`
+  INSERT INTO
+    MY_TABLE
+    ( FIELD_1, FIELD_2, FIELD_3, FIELD_4 )
+  VALUES
+    ( \${myVar.id}, \${other_var.foo}, \${thing}, \${foo[index]} )\``,
+    );
   });
 });

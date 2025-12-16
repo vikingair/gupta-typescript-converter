@@ -9,6 +9,16 @@
     "build/cli.js",
     "build/meta.js"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vikingair/gupta-typescript-converter"
+  },
+  "keywords": [
+    "CLI",
+    "Gupta",
+    "Typescript"
+  ],
+  "author": "Viktor Luft <viktor.luft@freiheit.com> (https://github.com/vikingair)",
   "dependencies": {
     "@types/prompts": "2.4.9",
     "brocolito": "6.1.1",

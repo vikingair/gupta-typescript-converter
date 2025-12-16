@@ -11,6 +11,7 @@ import { renderGlobalConstants } from "./render/globals/constants";
 import { renderGlobalFunctions } from "./render/globals/functions";
 import { renderGlobalVariables } from "./render/globals/variables";
 import { renderGuptaFile } from "./render/render";
+import { CLI } from "brocolito";
 
 const writeFiles = async (
   targetDir: string,
@@ -18,13 +19,18 @@ const writeFiles = async (
   declarations: GlobalDeclarations,
 ) => {
   for (const [fileName, guptaFile] of Object.entries(files)) {
-    const fileContent = renderGuptaFile(guptaFile, declarations);
+    const fileContent = renderGuptaFile(guptaFile, declarations).trim();
+    if (!fileContent) continue;
     const targetFile = path.join(targetDir, fileName + ".ts");
     const fileDir = path.dirname(targetFile);
     await fs.mkdir(fileDir, { recursive: true });
-    await fs.writeFile(targetFile, fileContent);
+    await fs.writeFile(targetFile, fileContent + "\n");
   }
-  await fs.writeFile(path.join(targetDir, "env.d.ts"), guptaEnvDTS);
+  await fs.writeFile(path.join(targetDir, "env.ts"), guptaEnvDTS);
+  await fs.copyFile(
+    path.join(CLI.meta.dir, "src", "tsconfig.template.json"),
+    path.join(targetDir, "tsconfig.json"),
+  );
   await fs.writeFile(
     path.join(targetDir, "Global_Declarations", "variables.ts"),
     renderGlobalVariables(declarations),

@@ -1,12 +1,11 @@
 import { type GlobalDeclarations } from "../../parse/global_declarations";
 import { getParameterNames, renderMethod, renderParams } from "../functions";
 import { indent } from "../shared";
-import { renderGlobalIncludes } from "./include";
 
 export const renderGlobalClasses = (
   declarations: GlobalDeclarations,
 ): string => {
-  let result = renderGlobalIncludes(declarations, ".");
+  let result = `export {};\ndeclare global {\n`;
   const globalVars = getParameterNames(declarations.variables);
   for (const [name, spec] of Object.entries(declarations.classes)) {
     if (spec.description) {
@@ -32,5 +31,6 @@ export const renderGlobalClasses = (
 ${indent(1, classBody)}
 }\n\n`;
   }
+  result += `}\n`;
   return result;
 };

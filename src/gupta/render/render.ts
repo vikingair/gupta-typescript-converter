@@ -8,7 +8,6 @@ import {
 } from "../parse/types";
 import { renderBodyStatements } from "./body";
 import { getParameterNames, renderFunctions } from "./functions";
-import { renderGlobalIncludes } from "./globals/include";
 import { renderHandles } from "./handles";
 import { type GuptaFileContents, indent, TS_TYPES } from "./shared";
 
@@ -147,7 +146,6 @@ export const renderGuptaFile = (
   buildFileContents(file.spec, contents);
 
   return (
-    renderGlobalIncludes(declarations) +
     renderWindowVars(contents.windowVars.specs) +
     renderHandles(contents) +
     renderFunctions(contents.functions, contents.windowVars.names) +

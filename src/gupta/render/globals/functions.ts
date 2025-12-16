@@ -2,14 +2,11 @@ import { type GlobalDeclarations } from "../../parse/global_declarations";
 import { GuptaSpecType } from "../../parse/types";
 import { renderFunction } from "../functions";
 import { indent } from "../shared";
-import { renderGlobalIncludes } from "./include";
 
 export const renderGlobalFunctions = (
   declarations: GlobalDeclarations,
 ): string => {
-  let result = renderGlobalIncludes(declarations, ".");
-
-  result += `declare global {
+  let result = `export {};\ndeclare global {
 ${indent(
   1,
   declarations.functions

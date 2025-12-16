@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { sanitizeCondition } from "./file";
+import { sanitizeCondition, sanitizeStatement } from "./file";
 
 describe("wawi gupta parse - file", () => {
   it("sanitizeCondition", () => {
@@ -28,5 +28,47 @@ describe("wawi gupta parse - file", () => {
   VALUES
     ( \${myVar.id}, \${other_var.foo}, \${thing}, \${foo[index]} )\``,
     );
+  });
+
+  it("sanitizeStatement", () => {
+    expect(
+      sanitizeStatement(
+        `sSql || "
+                  UNION
+                  SELECT
+                    FOO, BAR
+                  FROM
+                    THING,
+                    OTHER
+                  WHERE
+                    COND = :thing AND
+                    BLUB = '" || some.func() || "' AND
+                    WHAT = 1 AND
+                    " ||  whatever.func( andAnother.func(), test )  || "
+
+                    " ||  whatever.func2( test2 ) || "
+
+                  "`,
+      ),
+    ).toBe(
+      `sSql + \`
+                  UNION
+                  SELECT
+                    FOO, BAR
+                  FROM
+                    THING,
+                    OTHER
+                  WHERE
+                    COND = \${thing} AND
+                    BLUB = '\` + some.func() + \`' AND
+                    WHAT = 1 AND
+                    \` +  whatever.func( andAnother.func(), test )  + \`
+
+                    \` +  whatever.func2( test2 ) + \`
+
+                  \``,
+    );
+
+    expect(sanitizeStatement(`NOT thing()`)).toBe(`!thing()`);
   });
 });

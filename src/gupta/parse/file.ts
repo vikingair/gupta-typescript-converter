@@ -39,7 +39,7 @@ const BLACK_LIST_OBJECTS = new Set([
 // :foo_bar -> ${foo_bar}
 // :arr[entry] -> ${arr[entry]}
 // :foo.bar -> ${foo.bar}
-const sanitizeStatement = (str: string) => {
+export const sanitizeStatement = (str: string) => {
   let quote = "";
   let templateVar = "";
   let templateBracketOpen = false;
@@ -103,6 +103,24 @@ const sanitizeStatement = (str: string) => {
         // "=" -> "==="
         result += "===";
       }
+    } else if (
+      // OR -> ||
+      c.toLowerCase() === "o" &&
+      str[i + 1]?.toLowerCase() === "r" &&
+      !/[a-z0-9_[\].]/i.test((str[i - 1] ?? "") + (str[i + 2] ?? ""))
+    ) {
+      result += "||";
+      i++;
+    } else if (
+      // AND -> &&
+      c.toLowerCase() === "a" &&
+      str[i + 1]?.toLowerCase() === "n" &&
+      str[i + 2]?.toLowerCase() === "d" &&
+      !/[a-z0-9_[\].]/i.test((str[i - 1] ?? "") + (str[i + 3] ?? ""))
+    ) {
+      result += "&&";
+      i++;
+      i++;
     } else {
       result += c;
     }
@@ -117,10 +135,6 @@ const sanitizeStatement = (str: string) => {
 // NOT > -> <=
 export const sanitizeCondition = (cond: string) =>
   sanitizeStatement(cond)
-    // OR -> ||
-    .replace(/(\s)or(\s)/gi, "$1||$2")
-    // AND -> &&
-    .replace(/(\s)and(\s)/gi, "$1&&$2")
     // NOT === -> !==
     .replace(/([^a-z0-9_])not\s([^=(]+\s?)===/gi, "$1$2!==")
     .replace(/^not\s([^=]+\s?)===/gi, "$1!==")

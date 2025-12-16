@@ -90,11 +90,11 @@ export const renderBodyStatements = (
   instanceVars?.forEach((iv) => {
     result = result
       .replaceAll(
-        new RegExp(`([^a-z0-9_.])${iv}([^a-z0-9_])`, "g"),
+        new RegExp(`([^a-zA-Z0-9_.])${iv}([^a-zA-Z0-9_])`, "g"),
         `$1this.${iv}$2`,
       )
-      .replaceAll(new RegExp(`^${iv}([^a-z0-9_])`, "g"), `this.${iv}$1`)
-      .replaceAll(new RegExp(`([^a-z0-9_.])${iv}$`, "g"), `$1this.${iv}`)
+      .replaceAll(new RegExp(`^${iv}([^a-zA-Z0-9_])`, "g"), `this.${iv}$1`)
+      .replaceAll(new RegExp(`([^a-zA-Z0-9_.])${iv}$`, "g"), `$1this.${iv}`)
       .replaceAll("let this.", "this.");
   });
 

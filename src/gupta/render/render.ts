@@ -115,7 +115,8 @@ const renderSpec = (
 const renderWindowVars = (specs: GuptaWindowVarsSpec[]) => {
   if (!specs.length) return "";
   return (
-    specs
+    "// Window Variables\n" +
+    (specs
       .flatMap(({ vars }) =>
         vars.map((p) => {
           if ("comment" in p) return `// ${p.comment}`;
@@ -123,7 +124,8 @@ const renderWindowVars = (specs: GuptaWindowVarsSpec[]) => {
           return `// class: ${p.className}\nlet ${p.name}: any;`;
         }),
       )
-      .join("\n") + "\n\n"
+      .join("\n") +
+      "\n\n")
   );
 };
 

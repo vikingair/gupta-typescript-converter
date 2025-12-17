@@ -15,6 +15,8 @@ declare global {
   let VALIDATE_Ok: unknown;
   let DATE_RANGE: unknown;
   let TBL_FillAll: unknown;
+  let TBL_Flag_SingleSelection: unknown;
+  let TBL_Flag_SelectableCols: unknown;
   let nMultiLanguage: 0 | 1;
   let hSqlSelect: Symbol;
   let hWndItem: Symbol;

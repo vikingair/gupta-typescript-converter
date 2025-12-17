@@ -129,6 +129,23 @@ const renderWindowVars = (specs: GuptaWindowVarsSpec[]) => {
   );
 };
 
+const renderGlobals = (spec: GuptaSpec) => {
+  if (spec.type !== GuptaSpecType.OBJECT) return "";
+  if (spec.clazz === "Form Window") {
+    return `\n\ndeclare global {
+  let ${spec.name}: typeof Form_Window["${spec.name}"];
+}`;
+  }
+
+  if (spec.clazz === "Dialog Box") {
+    return `\n\ndeclare global {
+  let ${spec.name}: typeof Dialog_Box["${spec.name}"];
+}`;
+  }
+
+  return "";
+};
+
 export const renderGuptaFile = (
   file: GuptaFile,
   declarations: GlobalDeclarations,
@@ -159,6 +176,7 @@ ${specs.map((s) => renderSpec(s, 1, contents.windowVars.names)).join("\n")}
 };`,
       )
       .join("\n\n") +
-    (contents.data ? `\n\n${renderData(contents.data)}` : "")
+    (contents.data ? `\n\n${renderData(contents.data)}` : "") +
+    renderGlobals(file.spec)
   );
 };

@@ -38,6 +38,10 @@ export const getGlobalDeclarations = (
     classes: {},
   };
   for (const c of elem.children!) {
+    if (c.type === GuptaAstElemType.COMMENT) {
+      // ignoring top level comments
+      continue;
+    }
     if (c.stm === "Window Defaults") {
       // just containing style information
       continue;
@@ -259,6 +263,21 @@ export const getGlobalDeclarations = (
           continue;
         }
 
+        if (c2.name === "Picture Class") {
+          // TODO: Handle them as well
+          continue;
+        }
+
+        if (c2.name === "Custom Control Class") {
+          // TODO: Handle them as well
+          continue;
+        }
+
+        if (c2.name === "Frame Class") {
+          // TODO: Handle them as well
+          continue;
+        }
+
         if (c2.name !== "Functional Class") {
           return throwErr(
             "getGlobalDeclarations: Class Definitions: unexpected attribute name",
@@ -351,6 +370,7 @@ const parseFunctionalClass = ({
         case "Derived From": {
           if (c.children?.length) {
             for (const c2 of c.children) {
+              if (c2.type === GuptaAstElemType.COMMENT) continue;
               if (c2.type !== GuptaAstElemType.ATTRIBUTE) {
                 return throwErr(
                   "parseFunctionalClass: expected attribute in 'Derived From'",

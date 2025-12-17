@@ -280,7 +280,12 @@ const getAstElem = (base: GuptaAstElemBase): GuptaAstElem => {
   }
 };
 
-export const getGuptaAst = (lines: string[]): GuptaAstElem => {
+export const getGuptaAst = (content: string): GuptaAstElem => {
+  const lines = content
+    .replaceAll("\t", "  ")
+    .replaceAll(/\r/g, "")
+    .split("\n");
+
   const topLevel: GuptaAstElem = {
     stm: "Module",
     level: -1,

@@ -1,34 +1,53 @@
-import type { GuptaObjectSpec } from "./types";
-import fs from "node:fs/promises";
 import path from "node:path";
+import { getGuptaAst, GuptaAstElemType, type GuptaAstElem } from "../ast";
+import { readFile } from "../utils";
 
-export const parseLibraries = async (
-  projectRootDir: string,
-  spec: GuptaObjectSpec,
-) => {
-  const allAvailableLibs = await Array.fromAsync(
-    fs.glob(path.join("{LCL,ShareableFiles}", "*.apl"), {
-      cwd: projectRootDir,
-    }),
-  );
-  const allAvailableLibsMap = new Map(
-    allAvailableLibs.map((lib) => {
-      const [dir, name] = lib.split(path.sep);
-      return [name, dir];
-    }),
-  );
+export type AvailableLibsMap = Map<
+  string,
+  { name: string; relativeDir: string; dir: string; processed: boolean }
+>;
+export type Library = {
+  name: string;
+  relativeDir: string;
+  ast: GuptaAstElem;
+};
 
-  const allLibIncludes = spec.props
-    .map((p) => {
-      if (p.type === 0 && p.name === "File Include") {
-        if (!allAvailableLibsMap.has(p.value)) {
-          throw new Error(`'File Include' not found: ${p.value}`);
-        }
-        return { dir: allAvailableLibsMap.get(p.value)!, name: p.value };
+export const getLibraries = async (
+  elem: GuptaAstElem,
+  availableLibsMap: AvailableLibsMap,
+): Promise<Library[]> => {
+  if (elem.type !== GuptaAstElemType.OBJECT) {
+    throw new Error(
+      "Cannot get Libraries of wrong ast elem type: " + elem.type,
+    );
+  }
+
+  const allLibIncludes = elem
+    .children!.map((c) => {
+      if (c.type === GuptaAstElemType.COMMENT) return;
+      if (c.type !== GuptaAstElemType.ATTRIBUTE || c.name !== "File Include") {
+        throw new Error(
+          `Unexpected element found in Libraries: (${c.type}) ${c.stm}`,
+        );
       }
-      return undefined;
+      const al = availableLibsMap.get(c.value.toLowerCase());
+      if (!al) {
+        // For now we need to ignore missing libs, which cannot be found
+        // console.warn(`'File Include' not found: ${c.value}`);
+        return;
+      }
+      if (al.processed) return;
+      al.processed = true;
+      const { dir, relativeDir } = al;
+      return { dir, relativeDir, name: c.value };
     })
     .filter(Boolean);
 
-  return allLibIncludes;
+  return await Array.fromAsync(
+    allLibIncludes.map(async ({ dir, relativeDir, name }) => {
+      const content = await readFile(path.join(dir, name));
+      const ast = getGuptaAst(content);
+      return { name, relativeDir, ast };
+    }),
+  );
 };

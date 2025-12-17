@@ -1,3 +1,4 @@
+import path from "node:path";
 import {
   type GuptaAstElem,
   GuptaAstElemType,
@@ -9,6 +10,7 @@ import {
   getGlobalDeclarations,
   type GlobalDeclarations,
 } from "./global_declarations";
+import { getLibraries, type AvailableLibsMap } from "./libraries";
 import {
   CONFIG,
   getParameters,
@@ -444,11 +446,23 @@ export const getSpec = (elem: GuptaAstElem): GuptaSpec | undefined => {
   return getSpecWithChildren(elem);
 };
 
-export const parseGuptaFiles = (
+type GuptaFiles = {
+  files: Record<string, GuptaFile>;
+  declarations: GlobalDeclarations;
+  libraries: Array<{
+    dirName: string;
+    files: Record<string, GuptaFile>;
+    declarations: GlobalDeclarations;
+  }>;
+};
+
+export const parseGuptaFiles = async (
   ast: GuptaAstElem,
-): { files: Record<string, GuptaFile>; declarations: GlobalDeclarations } => {
+  availableLibsMap: AvailableLibsMap,
+): Promise<GuptaFiles> => {
   const files: Record<string, GuptaFile> = {};
   let declarations = null! as GlobalDeclarations;
+  const libraries: GuptaFiles["libraries"] = [];
   for (const c of ast.children || []) {
     if (c.type === GuptaAstElemType.COMMENT) {
       // ignoring top level comments for now
@@ -474,6 +488,26 @@ export const parseGuptaFiles = (
       continue;
     }
 
+    if (name === "Libraries") {
+      const libs = await getLibraries(c, availableLibsMap);
+      for (const lib of libs) {
+        const parsedLib = await parseGuptaFiles(lib.ast, availableLibsMap);
+
+        libraries.push(
+          {
+            dirName: path.join(
+              lib.relativeDir,
+              lib.name.replace(/\.apl$/i, ""),
+            ),
+            files: parsedLib.files,
+            declarations: parsedLib.declarations,
+          },
+          ...parsedLib.libraries,
+        );
+      }
+      continue;
+    }
+
     const spec = getSpec(c);
     if (!spec)
       throw new Error("parseGuptaFiles: Empty file: " + `${category}/${name}`);
@@ -487,5 +521,5 @@ export const parseGuptaFiles = (
       files[`${name}`] = { data: c.data, spec };
     }
   }
-  return { files, declarations };
+  return { files, declarations, libraries };
 };

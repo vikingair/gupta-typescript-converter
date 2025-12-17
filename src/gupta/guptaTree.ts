@@ -1,46 +1,22 @@
+import { CLI } from "brocolito";
 import fs from "node:fs/promises";
 import path from "node:path";
+import packageJSON from "../../package.json";
 import { getGuptaAst } from "./ast";
 import { guptaEnvDTS } from "./env";
 import { _errorConfig } from "./error";
 import { parseGuptaFiles } from "./parse/file";
 import { type GlobalDeclarations } from "./parse/global_declarations";
-import { GuptaSpecType, type GuptaFile } from "./parse/types";
+import { type GuptaFile } from "./parse/types";
 import { renderGlobalClasses } from "./render/globals/classes";
 import { renderGlobalConstants } from "./render/globals/constants";
 import { renderGlobalFunctions } from "./render/globals/functions";
 import { renderGlobalVariables } from "./render/globals/variables";
 import { renderGuptaFile } from "./render/render";
-import { CLI } from "brocolito";
-import packageJSON from "../../package.json";
-import { parseLibraries } from "./parse/libraries";
+import { readFile } from "./utils";
 
-const writeFiles = async (
-  projectRootDir: string,
-  targetDir: string,
-  files: Record<string, GuptaFile>,
-  declarations: GlobalDeclarations,
-) => {
-  for (const [fileName, guptaFile] of Object.entries(files)) {
-    if (
-      guptaFile.spec.type === GuptaSpecType.OBJECT &&
-      guptaFile.spec.name === "Libraries"
-    ) {
-      // does not yet have any effect
-      await parseLibraries(projectRootDir, guptaFile.spec).catch((err) => {
-        console.log(
-          `Could not parse Libraries in ${projectRootDir}: ${err.message}`,
-        );
-      });
-      continue;
-    }
-    const fileContent = renderGuptaFile(guptaFile, declarations).trim();
-    if (!fileContent) continue;
-    const targetFile = path.join(targetDir, fileName + ".ts");
-    const fileDir = path.dirname(targetFile);
-    await fs.mkdir(fileDir, { recursive: true });
-    await fs.writeFile(targetFile, fileContent + "\n");
-  }
+const writeGlobalFiles = async (targetDir: string) => {
+  await fs.mkdir(targetDir, { recursive: true });
   await fs.writeFile(
     path.join(targetDir, `generator_version.${packageJSON.version}.txt`),
     "Commit history can be found at: https://github.com/vikingair/gupta-typescript-converter\n",
@@ -50,6 +26,26 @@ const writeFiles = async (
     path.join(CLI.meta.dir, "src", "tsconfig.template.json"),
     path.join(targetDir, "tsconfig.json"),
   );
+};
+
+const writeFiles = async (
+  targetDir: string,
+  files: Record<string, GuptaFile>,
+  declarations: GlobalDeclarations,
+) => {
+  for (const [fileName, guptaFile] of Object.entries(files)) {
+    const fileContent = renderGuptaFile(guptaFile, declarations).trim();
+    if (!fileContent) continue;
+    const targetFile = path.join(targetDir, fileName + ".ts");
+    const fileDir = path.dirname(targetFile);
+    await fs.mkdir(fileDir, { recursive: true });
+    await fs.writeFile(targetFile, fileContent + "\n");
+  }
+
+  await fs.mkdir(path.join(targetDir, "Global_Declarations", "Constants"), {
+    recursive: true,
+  });
+
   await fs.writeFile(
     path.join(targetDir, "Global_Declarations", "variables.ts"),
     renderGlobalVariables(declarations),
@@ -89,20 +85,49 @@ export const guptaTree = async ({ source }: { source: string }) => {
   const projectRootDir = path.resolve(sourcesDir, "..");
 
   _errorConfig.sourceFile = path.resolve(source);
-  const content = await Bun.file(source).text();
-  const lines = content
-    .replaceAll("\t", "  ")
-    .replaceAll(/\r/g, "")
-    .split("\n");
+  const ast = getGuptaAst(await readFile(source));
 
-  const ast = getGuptaAst(lines);
-  const { files, declarations } = parseGuptaFiles(ast);
+  const allAvailableLibs = await Array.fromAsync(
+    fs.glob(path.join("{LCL,ShareableFiles}", "**", "*.{apl,APL}"), {
+      cwd: projectRootDir,
+    }),
+  );
+
+  const availableLibsMap = new Map<
+    string,
+    { name: string; relativeDir: string; dir: string; processed: boolean }
+  >(
+    allAvailableLibs.map((lib) => {
+      const name = path.basename(lib);
+      const relativeDir = path.dirname(lib);
+      return [
+        name.toLowerCase(),
+        {
+          name,
+          relativeDir,
+          dir: path.resolve(projectRootDir, relativeDir),
+          processed: false,
+        },
+      ];
+    }),
+  );
+  const { files, declarations, libraries } = await parseGuptaFiles(
+    ast,
+    availableLibsMap,
+  );
 
   const tsRootDir = path.join(projectRootDir, "typescript");
   await fs.rm(tsRootDir, { recursive: true, force: true });
-  await fs.mkdir(path.join(tsRootDir, "Global_Declarations", "Constants"), {
-    recursive: true,
-  });
 
-  await writeFiles(projectRootDir, tsRootDir, files, declarations);
+  await writeGlobalFiles(tsRootDir);
+  await writeFiles(tsRootDir, files, declarations);
+  await Array.fromAsync(
+    libraries.map(async ({ dirName, files, declarations }) => {
+      await writeFiles(
+        path.join(tsRootDir, "Libraries", dirName),
+        files,
+        declarations,
+      );
+    }),
+  );
 };

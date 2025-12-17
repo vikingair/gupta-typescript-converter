@@ -130,6 +130,12 @@ export type GuptaWindowVarsSpec = {
 
 export type GuptaCommentSpec = { type: GuptaSpecType.COMMENT; content: string };
 
+export type GuptaObjectSpec = {
+  type: GuptaSpecType.OBJECT;
+  props: GuptaSpec[];
+  clazz?: string;
+};
+
 export type GuptaSpec =
   | GuptaCommentSpec
   | GuptaFunctionSpec
@@ -137,7 +143,7 @@ export type GuptaSpec =
       (
         | { type: GuptaSpecType.ATTRIBUTE; value: string }
         | { type: GuptaSpecType.BOOLEAN_ATTRIBUTE; value: boolean }
-        | { type: GuptaSpecType.OBJECT; props: GuptaSpec[]; clazz?: string }
+        | GuptaObjectSpec
         | GuptaWindowVarsSpec
         | GuptaPopupMenuSpec
         | {

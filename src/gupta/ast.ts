@@ -73,7 +73,7 @@ type GuptaReturnElem = GuptaAstElemBase & {
   type: GuptaAstElemType.RETURN;
   value?: string;
 };
-type GuptaOnElem = GuptaAstElemBase & {
+export type GuptaOnElem = GuptaAstElemBase & {
   type: GuptaAstElemType.ON;
 };
 type GuptaCallElem = GuptaAstElemBase & {

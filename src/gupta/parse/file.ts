@@ -4,6 +4,7 @@ import {
   GuptaAstElemType,
   type GuptaAttributeElem,
   type GuptaFunctionElem,
+  type GuptaOnElem,
 } from "../ast";
 import { throwErr } from "../error";
 import {
@@ -22,6 +23,7 @@ import {
 import {
   type GuptaBaseSpec,
   type GuptaBodyStatement,
+  type GuptaEventHandlerSpec,
   type GuptaFile,
   type GuptaFunctionSpec,
   type GuptaIfStatement,
@@ -346,6 +348,17 @@ export const getFunctionSpec = (elem: GuptaFunctionElem): GuptaFunctionSpec => {
   return fn;
 };
 
+export const getEvenHandlerSpec = (
+  elem: GuptaOnElem,
+  inlineComment?: string,
+): GuptaEventHandlerSpec => ({
+  name: elem.stm,
+  indent: elem.level,
+  type: GuptaSpecType.EVENT_HANDLER,
+  body: getBodyStatements(elem),
+  inlineComment,
+});
+
 const getPopupMenuSpec = (
   elem: GuptaAttributeElem,
 ): GuptaPopupMenuSpec & GuptaBaseSpec => {
@@ -368,13 +381,7 @@ const getSpecWithChildren = (elem: GuptaAstElem): GuptaSpec | undefined => {
   }
 
   if (elem.type === GuptaAstElemType.ON) {
-    return {
-      name: elem.stm,
-      indent: elem.level,
-      type: GuptaSpecType.EVENT_HANDLER,
-      body: getBodyStatements(elem),
-      inlineComment,
-    };
+    return getEvenHandlerSpec(elem, inlineComment);
   }
 
   if (elem.type === GuptaAstElemType.ARRAY) {

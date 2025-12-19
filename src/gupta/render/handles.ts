@@ -33,10 +33,9 @@ export const renderHandles = ({ specs }: GuptaFileContents) => {
             const classType = (dataField as any).props.find(
               ({ name }: { name: string }) => name === "Class",
             ).value;
+            // FIXME
             const usedType =
-              dataType === "Class Default" && classType === "DF_LD_Date"
-                ? "Date/Time"
-                : dataType;
+              dataType === "Class Default" ? classType : dataType;
             type = TS_TYPES[getPrimitve(usedType)];
           } catch {
             // do nothing

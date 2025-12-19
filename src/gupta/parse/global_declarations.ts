@@ -4,14 +4,14 @@ import {
   type GuptaAttributeElem,
 } from "../ast";
 import { throwErr } from "../error";
-import { getFunctionSpec, getSpec } from "./file";
+import { parseDataFieldClass, parseFunctionalClass } from "./classes";
+import { getSpec } from "./file";
 import { getParameters, getPrimitve, renderComment } from "./shared";
 import {
   type GuptaClassDefSpec,
   type GuptaParams,
   GuptaPrimitive,
   type GuptaSpec,
-  GuptaSpecType,
 } from "./types";
 
 type ConstParam =
@@ -183,6 +183,9 @@ export const getGlobalDeclarations = (
             { elem: c2 },
           );
 
+        const descriptionFromComments = comments.map(renderComment).join("\n");
+        comments.length = 0;
+
         if (c2.name === "Form Window Class") {
           // TODO: Handle them as well
           continue;
@@ -204,7 +207,10 @@ export const getGlobalDeclarations = (
         }
 
         if (c2.name === "Data Field Class") {
-          // TODO: Handle them as well
+          result.classes[String(c2.value)] = parseDataFieldClass({
+            elem: c2,
+            descriptionFromComments,
+          });
           continue;
         }
 
@@ -285,9 +291,6 @@ export const getGlobalDeclarations = (
           );
         }
 
-        const descriptionFromComments = comments.map(renderComment).join("\n");
-        comments.length = 0;
-
         result.classes[String(c2.value)] = parseFunctionalClass({
           elem: c2,
           descriptionFromComments,
@@ -308,110 +311,4 @@ export const getGlobalDeclarations = (
   }
 
   return result;
-};
-
-const parseFunctionalClass = ({
-  elem,
-  descriptionFromComments,
-}: {
-  elem: GuptaAstElem;
-  descriptionFromComments: string;
-}): GuptaClassDefSpec => {
-  let description = "";
-  const inheritedFrom = [];
-  let functions: GuptaClassDefSpec["functions"] = [];
-  let instanceVars: GuptaClassDefSpec["instanceVars"] = [];
-  let classVars: GuptaClassDefSpec["classVars"] = [];
-  for (const c of elem.children!) {
-    if (c.type === GuptaAstElemType.ATTRIBUTE) {
-      if (c.name !== "Description")
-        return throwErr("parseFunctionalClass: unexpected attribute", {
-          elem: c,
-        });
-
-      description = String(c.value)
-        .split("\n")
-        .map((l) => "// " + l)
-        .join("\n");
-    }
-    if (c.type === GuptaAstElemType.ARRAY) {
-      switch (c.stm) {
-        case "Instance Variables": {
-          instanceVars = getParameters(c);
-          break;
-        }
-        case "Class Variables": {
-          classVars = getParameters(c);
-          break;
-        }
-        default: {
-          return throwErr("parseFunctionalClass: Unknown array", { elem: c });
-        }
-      }
-    }
-    if (c.type === GuptaAstElemType.OBJECT) {
-      switch (c.stm) {
-        case "Functions": {
-          functions = (c.children ?? [])
-            // TODO: Show comments above function
-            .filter((c2) => c2.type !== GuptaAstElemType.COMMENT)
-            .map((c2) => {
-              if (c2.type !== GuptaAstElemType.FUNCTION) {
-                return throwErr(
-                  "parseFunctionalClass: Unexpected elem type in Functions object",
-                  { elem: c2 },
-                );
-              }
-              return getFunctionSpec(c2);
-            });
-          // TODO
-          break;
-        }
-        case "Derived From": {
-          if (c.children?.length) {
-            for (const c2 of c.children) {
-              if (c2.type === GuptaAstElemType.COMMENT) continue;
-              if (c2.type !== GuptaAstElemType.ATTRIBUTE) {
-                return throwErr(
-                  "parseFunctionalClass: expected attribute in 'Derived From'",
-                  {
-                    elem: c2,
-                  },
-                );
-              }
-              if (c2.name !== "Class") {
-                return throwErr(
-                  "parseFunctionalClass: expected 'Class' attribute in 'Derived From'",
-                  {
-                    elem: c2,
-                  },
-                );
-              }
-              inheritedFrom.push(String(c2.value));
-            }
-          }
-          break;
-        }
-        case "Constructor/Destructor": {
-          // TODO
-          break;
-        }
-        default:
-          return throwErr("parseFunctionalClass: unexpected object", {
-            elem: c,
-          });
-      }
-    }
-  }
-
-  return {
-    type: GuptaSpecType.CLASS_DEFINITION,
-    description: [descriptionFromComments, description]
-      .filter(Boolean)
-      .join("\n//\n"), // TODO
-    inheritedFrom,
-    classVars: classVars,
-    instanceVars: instanceVars,
-    functions,
-  };
 };

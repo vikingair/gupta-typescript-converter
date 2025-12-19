@@ -1,4 +1,5 @@
 import { type GuptaAstElem, GuptaAstElemType } from "../ast";
+import { getEvenHandlerSpec } from "./file";
 import {
   type GuptaFunctionSpec,
   type GuptaParams,
@@ -124,13 +125,7 @@ export const getSpecWithoutChildren = (
       };
     case GuptaAstElemType.ON: {
       if (!CONFIG.verbose) return undefined;
-      return {
-        type: GuptaSpecType.EVENT_HANDLER,
-        name: elem.stm,
-        indent: elem.level,
-        body: [],
-        inlineComment,
-      };
+      return getEvenHandlerSpec(elem, inlineComment);
     }
     default:
       throw new Error(

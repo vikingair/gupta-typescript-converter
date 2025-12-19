@@ -14,6 +14,7 @@ const INITIAL_VALUE_BY_PRIMITIVE: Record<GuptaPrimitive, string> = {
   [GuptaPrimitive.WINDOW_HANDLE]: "Symbol() as any",
   [GuptaPrimitive.SQL_HANDLE]: "Symbol() as any",
   [GuptaPrimitive.FUNCTION]: "(...args: any[]): any => {}",
+  [GuptaPrimitive.TODO]: "Symbol() as any",
 };
 
 const getInitialValue = ({
@@ -34,7 +35,7 @@ export const renderVars = (params?: GuptaParams) => {
       if ("comment" in p) return `// ${p.comment}`;
       if ("type" in p)
         return `let ${p.name}: ${renderType(p)} = ${getInitialValue(p)};`;
-      return `// class: ${p.className}\nlet ${p.name}: any${p.isArray ? "[]" : ""} = Symbol();`;
+      return `let ${p.name}: ${p.className}${p.isArray ? "[]" : ""} = new ${p.className}();`;
     })
     .join("\n");
 };
@@ -55,7 +56,7 @@ export const renderParams = (params: GuptaParams, separator: "," | ";") =>
     .map((p) => {
       if ("comment" in p) return p.comment;
       if ("type" in p) return `${p.name}: ${renderType(p)}${separator}`;
-      return `// class: ${p.className}\n${p.name}: any${p.isArray ? "[]" : ""}${separator}`;
+      return `${p.name}: ${p.className}${p.isArray ? "[]" : ""}${separator}`;
     })
     .join("\n");
 

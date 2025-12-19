@@ -94,6 +94,9 @@ const _renderSpec = (
 ${renderBodyStatements(spec.body, level + 1, availableVarNames)}\n${i}},`;
     }
     case GuptaSpecType.ATTRIBUTE:
+      if (spec.name === "Class")
+        return `${renderPropName(spec.name)}: ${spec.value},`;
+
       return `${renderPropName(spec.name)}: \`${spec.value}\`,`;
     case GuptaSpecType.BOOLEAN_ATTRIBUTE:
       return `${renderPropName(spec.name)}: ${spec.value},`;
@@ -121,7 +124,7 @@ const renderWindowVars = (specs: GuptaWindowVarsSpec[]) => {
         vars.map((p) => {
           if ("comment" in p) return `// ${p.comment}`;
           if ("type" in p) return `let ${p.name}: ${TS_TYPES[p.type]};`;
-          return `// class: ${p.className}\nlet ${p.name}: any;`;
+          return `let ${p.name}: ${p.className};`;
         }),
       )
       .join("\n") +

@@ -22,6 +22,7 @@ export const TS_TYPES: Record<GuptaPrimitive, string> = {
   [GuptaPrimitive.WINDOW_HANDLE]: "any",
   [GuptaPrimitive.STRING]: "string",
   [GuptaPrimitive.FUNCTION]: "(...args: any[]) => any",
+  [GuptaPrimitive.TODO]: "/* TODO */ unknown",
 };
 
 export const indent = (level: number, str?: string) => {

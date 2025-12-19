@@ -18,6 +18,7 @@ export const enum GuptaPrimitive {
   WINDOW_HANDLE = 4,
   SQL_HANDLE = 5,
   FUNCTION = 6,
+  TODO = 7,
 }
 
 export const enum GuptaStatment {
@@ -32,6 +33,11 @@ export const enum GuptaStatment {
   LOOP = 8,
   LISTENER = 9,
   CONTINUE = 10,
+}
+
+export const enum GuptaClassType {
+  FUNCTIONAL = 0,
+  DATA_FIELD = 1,
 }
 
 export type GuptaIfStatement = {
@@ -101,14 +107,35 @@ export type GuptaFunctionSpec = GuptaBaseSpec & {
   body: GuptaBodyStatement[];
 };
 
-export type GuptaClassDefSpec = {
+export type GuptaEventHandlerSpec = GuptaBaseSpec & {
+  type: GuptaSpecType.EVENT_HANDLER;
+  body: GuptaBodyStatement[];
+};
+
+export type GuptaClassBaseSpec = {
   type: GuptaSpecType.CLASS_DEFINITION;
   description: string;
+};
+
+export type GuptaFunctionalClassDefSpec = GuptaClassBaseSpec & {
+  classType: GuptaClassType.FUNCTIONAL;
   inheritedFrom: string[];
   classVars: GuptaParams;
   instanceVars: GuptaParams;
   functions: GuptaFunctionSpec[];
 };
+
+export type GuptaDataFieldClassDefSpec = GuptaClassBaseSpec & {
+  classType: GuptaClassType.DATA_FIELD;
+  inheritedFrom: string[];
+  functions: GuptaFunctionSpec[];
+  actions: GuptaEventHandlerSpec[];
+  dataType: GuptaPrimitive;
+};
+
+export type GuptaClassDefSpec =
+  | GuptaFunctionalClassDefSpec
+  | GuptaDataFieldClassDefSpec;
 
 export type GuptaPopupMenuSpec = {
   type: GuptaSpecType.POPUP_MENU;
@@ -146,10 +173,7 @@ export type GuptaSpec =
         | GuptaObjectSpec
         | GuptaWindowVarsSpec
         | GuptaPopupMenuSpec
-        | {
-            type: GuptaSpecType.EVENT_HANDLER;
-            body: GuptaBodyStatement[];
-          }
+        | GuptaEventHandlerSpec
       ));
 
 export type GuptaFile = {

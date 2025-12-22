@@ -1,9 +1,11 @@
+import type { Context } from "../../error";
 import { type GlobalDeclarations } from "../../parse/global_declarations";
 
 export const renderGlobalConstants = (
+  ctx: Context,
   consts: GlobalDeclarations["constants"][string],
 ): string => {
-  if (!consts.length) throw new Error("renderGlobalConstants: No consts found");
+  if (!consts.length) ctx.throw("renderGlobalConstants: No consts found");
   let result = "export {};\ndeclare global {\n";
 
   result += consts

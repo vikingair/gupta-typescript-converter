@@ -6,7 +6,6 @@ import {
   type GuptaFunctionElem,
   type GuptaOnElem,
 } from "../ast";
-import { throwErr } from "../error";
 import {
   getGlobalDeclarations,
   type GlobalDeclarations,
@@ -33,6 +32,7 @@ import {
   GuptaStatment,
   type GuptaSwitchStatement,
 } from "./types";
+import type { Context } from "../error";
 
 const BLACK_LIST_OBJECTS = new Set([
   "Display Settings",
@@ -146,7 +146,10 @@ export const sanitizeCondition = (cond: string) =>
     .replace(/([^a-z0-9_])not\s/gi, "$1!")
     .replace(/^not\s/gi, "!");
 
-export const getBodyStatements = (elem: GuptaAstElem): GuptaBodyStatement[] => {
+export const getBodyStatements = (
+  ctx: Context,
+  elem: GuptaAstElem,
+): GuptaBodyStatement[] => {
   const stms: GuptaBodyStatement[] = [];
   let lastIf: GuptaIfStatement | undefined = undefined;
   if (elem.inlineComment)
@@ -166,23 +169,28 @@ export const getBodyStatements = (elem: GuptaAstElem): GuptaBodyStatement[] => {
           type: GuptaStatment.IF,
           condition: sanitizeCondition(c.condition),
           elseIf: [],
-          body: getBodyStatements(c),
+          body: getBodyStatements(ctx, c),
         };
         stms.push(lastIf);
         break;
       }
       case GuptaAstElemType.ELSE_IF: {
         if (!lastIf)
-          throw new Error("getBodyStatements: missing if for else-if");
+          return ctx
+            .withElem(c)
+            .throw("getBodyStatements: missing if for else-if");
         lastIf.elseIf.push({
           condition: sanitizeCondition(c.condition),
-          body: getBodyStatements(c),
+          body: getBodyStatements(ctx, c),
         });
         break;
       }
       case GuptaAstElemType.ELSE: {
-        if (!lastIf) throw new Error("getBodyStatements: missing if for else");
-        lastIf.else = { body: getBodyStatements(c) };
+        if (!lastIf)
+          return ctx
+            .withElem(c)
+            .throw("getBodyStatements: missing if for else");
+        lastIf.else = { body: getBodyStatements(ctx, c) };
         break;
       }
       case GuptaAstElemType.SET: {
@@ -210,7 +218,9 @@ export const getBodyStatements = (elem: GuptaAstElem): GuptaBodyStatement[] => {
       }
       case GuptaAstElemType.SELECT_CASE: {
         if (!c.children)
-          throw new Error("getBodyStatements: No childrens in SELECT_CASE");
+          return ctx
+            .withElem(c)
+            .throw("getBodyStatements: No childrens in SELECT_CASE");
         const s = c.children.reduce<
           Pick<GuptaSwitchStatement, "cases" | "default">
         >(
@@ -223,19 +233,21 @@ export const getBodyStatements = (elem: GuptaAstElem): GuptaBodyStatement[] => {
             if (elem.type === GuptaAstElemType.SELECT_CASE_CASE) {
               red.cases.push({
                 condition: elem.condition,
-                body: getBodyStatements(elem),
+                body: getBodyStatements(ctx, elem),
               });
               return red;
             }
 
             if (elem.type === GuptaAstElemType.SELECT_CASE_DEFAULT) {
-              red.default = getBodyStatements(elem);
+              red.default = getBodyStatements(ctx, elem);
               return red;
             }
 
-            throw new Error(
-              `getBodyStatements: SELECT_CASE: Unexpected child elem type ${elem.type}: ${elem.stm}`,
-            );
+            return ctx
+              .withElem(elem)
+              .throw(
+                "getBodyStatements: SELECT_CASE: Unexpected child elem type",
+              );
           },
           { cases: [], default: undefined },
         );
@@ -254,14 +266,14 @@ export const getBodyStatements = (elem: GuptaAstElem): GuptaBodyStatement[] => {
         stms.push({
           type: GuptaStatment.WHILE,
           condition: sanitizeCondition(c.condition),
-          body: getBodyStatements(c),
+          body: getBodyStatements(ctx, c),
         });
         break;
       }
       case GuptaAstElemType.LOOP: {
         stms.push({
           type: GuptaStatment.LOOP,
-          body: getBodyStatements(c),
+          body: getBodyStatements(ctx, c),
         });
         break;
       }
@@ -269,21 +281,24 @@ export const getBodyStatements = (elem: GuptaAstElem): GuptaBodyStatement[] => {
         stms.push({
           type: GuptaStatment.LISTENER,
           event: c.event,
-          body: getBodyStatements(c),
+          body: getBodyStatements(ctx, c),
         });
         break;
       }
       default:
-        return throwErr("getBodyStatements: Unhandled body statement", {
-          elem: c,
-        });
+        return ctx
+          .withElem(c)
+          .throw("getBodyStatements: Unhandled body statement");
     }
   }
 
   return stms;
 };
 
-export const getFunctionSpec = (elem: GuptaFunctionElem): GuptaFunctionSpec => {
+export const getFunctionSpec = (
+  ctx: Context,
+  elem: GuptaFunctionElem,
+): GuptaFunctionSpec => {
   const fn: GuptaFunctionSpec = {
     name: elem.name,
     description: "",
@@ -298,13 +313,13 @@ export const getFunctionSpec = (elem: GuptaFunctionElem): GuptaFunctionSpec => {
   elem.children!.forEach((e) => {
     if (e.type === GuptaAstElemType.ARRAY) {
       if (e.stm === "Parameters") {
-        fn.parameters = getParameters(e);
+        fn.parameters = getParameters(ctx, e);
         return;
       } else if (e.stm === "Local variables") {
-        fn.localVars = getParameters(e);
+        fn.localVars = getParameters(ctx, e);
         return;
       } else if (e.stm === "Static Variables") {
-        fn.staticVars = getParameters(e);
+        fn.staticVars = getParameters(ctx, e);
         return;
       } else if (e.stm === "Returns") {
         // TODO: Do not ignore all other children (e.g. comments)
@@ -312,11 +327,11 @@ export const getFunctionSpec = (elem: GuptaFunctionElem): GuptaFunctionSpec => {
           ({ type }) => type === GuptaAstElemType.ARRAY_ELEM,
         );
         fn.returnType = firstChild
-          ? getPrimitve(firstChild.stm.split(":")[0], firstChild.stm)
+          ? getPrimitve(ctx, firstChild.stm.split(":")[0], firstChild.stm)
           : "any";
         return;
       } else {
-        return throwErr("getFunctionSpec: unexpected array", { elem: e });
+        return ctx.withElem(e).throw("getFunctionSpec: unexpected array");
       }
     }
     if (e.type === GuptaAstElemType.ATTRIBUTE) {
@@ -334,7 +349,7 @@ export const getFunctionSpec = (elem: GuptaFunctionElem): GuptaFunctionSpec => {
       }
     }
     if (e.stm === "Actions") {
-      fn.body = getBodyStatements(e);
+      fn.body = getBodyStatements(ctx, e);
       return;
     }
 
@@ -342,20 +357,21 @@ export const getFunctionSpec = (elem: GuptaFunctionElem): GuptaFunctionSpec => {
       // TODO: Where to place the comment?
       return;
     }
-    return throwErr("getFunctionSpec: Unhandled child elem", { elem: e });
+    return ctx.withElem(e).throw("getFunctionSpec: Unhandled child elem");
   });
 
   return fn;
 };
 
 export const getEvenHandlerSpec = (
+  ctx: Context,
   elem: GuptaOnElem,
   inlineComment?: string,
 ): GuptaEventHandlerSpec => ({
   name: elem.stm,
   indent: elem.level,
   type: GuptaSpecType.EVENT_HANDLER,
-  body: getBodyStatements(elem),
+  body: getBodyStatements(ctx, elem),
   inlineComment,
 });
 
@@ -373,15 +389,18 @@ const getPopupMenuSpec = (
   return popup;
 };
 
-const getSpecWithChildren = (elem: GuptaAstElem): GuptaSpec | undefined => {
+const getSpecWithChildren = (
+  ctx: Context,
+  elem: GuptaAstElem,
+): GuptaSpec | undefined => {
   const inlineComment = renderInlineComment(elem);
 
   if (elem.type === GuptaAstElemType.FUNCTION) {
-    return getFunctionSpec(elem);
+    return getFunctionSpec(ctx, elem);
   }
 
   if (elem.type === GuptaAstElemType.ON) {
-    return getEvenHandlerSpec(elem, inlineComment);
+    return getEvenHandlerSpec(ctx, elem, inlineComment);
   }
 
   if (elem.type === GuptaAstElemType.ARRAY) {
@@ -390,7 +409,7 @@ const getSpecWithChildren = (elem: GuptaAstElem): GuptaSpec | undefined => {
         name: "Window Variables", // TODO: actually not required
         indent: elem.level, // TODO: actually not required
         type: GuptaSpecType.WINDOW_VARS,
-        vars: getParameters(elem),
+        vars: getParameters(ctx, elem),
         inlineComment,
       };
     }
@@ -404,7 +423,7 @@ const getSpecWithChildren = (elem: GuptaAstElem): GuptaSpec | undefined => {
   }
 
   if (elem.type === GuptaAstElemType.OBJECT) {
-    const props = elem.children!.map(getSpec).filter(Boolean);
+    const props = elem.children!.map((e) => getSpec(ctx, e)).filter(Boolean);
     if (!CONFIG.verbose && !props.length) return undefined;
     return {
       name: elem.stm,
@@ -417,7 +436,7 @@ const getSpecWithChildren = (elem: GuptaAstElem): GuptaSpec | undefined => {
 
   if (elem.type === GuptaAstElemType.ATTRIBUTE) {
     if (elem.name === "Popup Menu") return getPopupMenuSpec(elem);
-    const props = elem.children!.map(getSpec).filter(Boolean);
+    const props = elem.children!.map((e) => getSpec(ctx, e)).filter(Boolean);
     if (!CONFIG.verbose && !props.length) return undefined;
     return {
       name: elem.value,
@@ -429,10 +448,15 @@ const getSpecWithChildren = (elem: GuptaAstElem): GuptaSpec | undefined => {
     };
   }
 
-  return throwErr("getSpecWithChildren: Cannot handle elem type", { elem });
+  return ctx
+    .withElem(elem)
+    .throw("getSpecWithChildren: Cannot handle elem type");
 };
 
-export const getSpec = (elem: GuptaAstElem): GuptaSpec | undefined => {
+export const getSpec = (
+  ctx: Context,
+  elem: GuptaAstElem,
+): GuptaSpec | undefined => {
   // if (elem.lineNr === 40851) console.log(elem);
   if (
     !CONFIG.verbose &&
@@ -446,17 +470,18 @@ export const getSpec = (elem: GuptaAstElem): GuptaSpec | undefined => {
       content: renderComment(elem),
     };
   if (!elem.children) {
-    const withoutChild = getSpecWithoutChildren(elem);
+    const withoutChild = getSpecWithoutChildren(ctx, elem);
     if (!withoutChild) return undefined;
     return withoutChild;
   }
-  return getSpecWithChildren(elem);
+  return getSpecWithChildren(ctx, elem);
 };
 
 type GuptaFiles = {
   files: Record<string, GuptaFile>;
   declarations: GlobalDeclarations;
   libraries: Array<{
+    ctx: Context;
     dirName: string;
     files: Record<string, GuptaFile>;
     declarations: GlobalDeclarations;
@@ -464,6 +489,7 @@ type GuptaFiles = {
 };
 
 export const parseGuptaFiles = async (
+  ctx: Context,
   ast: GuptaAstElem,
   availableLibsMap: AvailableLibsMap,
 ): Promise<GuptaFiles> => {
@@ -491,17 +517,22 @@ export const parseGuptaFiles = async (
     ).replace(/\s+/g, "_");
 
     if (name === "Global_Declarations") {
-      declarations = getGlobalDeclarations(c);
+      declarations = getGlobalDeclarations(ctx, c);
       continue;
     }
 
     if (name === "Libraries") {
-      const libs = await getLibraries(c, availableLibsMap);
+      const libs = await getLibraries(ctx, c, availableLibsMap);
       for (const lib of libs) {
-        const parsedLib = await parseGuptaFiles(lib.ast, availableLibsMap);
+        const parsedLib = await parseGuptaFiles(
+          lib.ctx,
+          lib.ast,
+          availableLibsMap,
+        );
 
         libraries.push(
           {
+            ctx: lib.ctx,
             dirName: path.join(
               lib.relativeDir,
               lib.name.replace(/\.apl$/i, ""),
@@ -515,9 +546,9 @@ export const parseGuptaFiles = async (
       continue;
     }
 
-    const spec = getSpec(c);
+    const spec = getSpec(ctx, c);
     if (!spec)
-      throw new Error("parseGuptaFiles: Empty file: " + `${category}/${name}`);
+      ctx.throw("parseGuptaFiles: Empty file: " + `${category}/${name}`);
 
     if (category) {
       files[`${category}/${name}`] = {

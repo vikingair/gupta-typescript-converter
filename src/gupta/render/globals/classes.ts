@@ -1,15 +1,38 @@
 import { type GlobalDeclarations } from "../../parse/global_declarations";
 import {
-  GuptaClassType,
-  type GuptaDataFieldClassDefSpec,
-  type GuptaFunctionalClassDefSpec,
+  type GuptaClassDefSpec,
+  type GuptaEventHandlerSpec,
+  type GuptaFunctionSpec,
 } from "../../parse/types";
+import { renderBodyStatements } from "../body";
 import { getParameterNames, renderMethod, renderParams } from "../functions";
 import { indent } from "../shared";
 
-const renderFunctionalClass = (
+const _renderEventHandlers = (
+  handlers: GuptaEventHandlerSpec[],
+  globalVars: string[],
+  instanceVars: string[],
+): string =>
+  handlers
+    .map(
+      (spec) => `'${spec.name}'() {
+${renderBodyStatements(spec.body, 1, globalVars, instanceVars)}
+}`,
+    )
+    .join("\n\n");
+
+const _renderFunctions = (
+  functions: GuptaFunctionSpec[],
+  globalVars: string[],
+  instanceVars: string[],
+): string =>
+  functions
+    .map((fn) => renderMethod(fn, globalVars, instanceVars))
+    .join("\n\n");
+
+const renderClass = (
   name: string,
-  spec: GuptaFunctionalClassDefSpec,
+  spec: GuptaClassDefSpec,
   globalVars: string[],
 ) => {
   const methodNames = Array.from(
@@ -20,50 +43,21 @@ const renderFunctionalClass = (
     .concat(methodNames);
 
   const classBody = [
+    spec.dataType &&
+      renderParams(
+        [{ name: "'Data Type'", type: spec.dataType, isArray: false }],
+        ";",
+      ),
     renderParams(spec.instanceVars, ";"),
     renderParams(spec.classVars, ";"),
-    spec.functions
-      .map((fn) => renderMethod(fn, globalVars, instanceVars))
-      .join("\n\n"),
+    _renderFunctions(spec.functions, globalVars, instanceVars),
+    _renderEventHandlers(spec.actions, globalVars, instanceVars),
   ]
     .filter(Boolean)
     .join("\n\n");
 
   return [
     spec.description,
-    "// Functional Class",
-    `class ${name}${spec.inheritedFrom.length ? ` extends ${spec.inheritedFrom.join(", ")}` : ""} {
-${indent(1, classBody)}
-}\n\n`,
-  ]
-    .filter(Boolean)
-    .join("\n");
-};
-
-const renderDataFieldClass = (
-  name: string,
-  spec: GuptaDataFieldClassDefSpec,
-  globalVars: string[],
-) => {
-  const methodNames = Array.from(
-    new Set(spec.functions.map(({ name }) => name)),
-  );
-
-  const classBody = [
-    renderParams(
-      [{ name: "'Data Type'", type: spec.dataType, isArray: false }],
-      ";",
-    ),
-    spec.functions
-      .map((fn) => renderMethod(fn, globalVars, methodNames))
-      .join("\n\n"),
-  ]
-    .filter(Boolean)
-    .join("\n\n");
-
-  return [
-    spec.description,
-    "// Data Field Class",
     `class ${name}${spec.inheritedFrom.length ? ` extends ${spec.inheritedFrom.join(", ")}` : ""} {
 ${indent(1, classBody)}
 }\n\n`,
@@ -78,20 +72,7 @@ export const renderGlobalClasses = (
   let result = `export {};\ndeclare global {\n`;
   const globalVars = getParameterNames(declarations.variables);
   for (const [name, spec] of Object.entries(declarations.classes)) {
-    switch (spec.classType) {
-      case GuptaClassType.FUNCTIONAL: {
-        result += renderFunctionalClass(name, spec, globalVars);
-        break;
-      }
-      case GuptaClassType.DATA_FIELD: {
-        result += renderDataFieldClass(name, spec, globalVars);
-        break;
-      }
-      default: {
-        // @ts-expect-error We should have checked for all existing classTypes here.
-        throw new Error("Received unhandled classType: " + spec.classType);
-      }
-    }
+    result += renderClass(name, spec, globalVars);
   }
   result += `}\n`;
   return result;

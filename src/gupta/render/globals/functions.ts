@@ -1,9 +1,11 @@
+import type { Context } from "../../error";
 import { type GlobalDeclarations } from "../../parse/global_declarations";
 import { GuptaSpecType } from "../../parse/types";
 import { renderFunction } from "../functions";
 import { indent } from "../shared";
 
 export const renderGlobalFunctions = (
+  ctx: Context,
   declarations: GlobalDeclarations,
 ): string => {
   let result = `export {};\ndeclare global {
@@ -28,7 +30,7 @@ ${indent(
         break;
       }
       default:
-        throw new Error(
+        ctx.throw(
           `renderGlobalFunctions: unexpected function spec type: (${spec.type})`,
         );
     }

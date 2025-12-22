@@ -38,6 +38,7 @@ export const enum GuptaStatment {
 export const enum GuptaClassType {
   FUNCTIONAL = 0,
   DATA_FIELD = 1,
+  CUSTOM_CONTROL = 2,
 }
 
 export type GuptaIfStatement = {
@@ -112,30 +113,16 @@ export type GuptaEventHandlerSpec = GuptaBaseSpec & {
   body: GuptaBodyStatement[];
 };
 
-export type GuptaClassBaseSpec = {
+export type GuptaClassDefSpec = {
   type: GuptaSpecType.CLASS_DEFINITION;
   description: string;
-};
-
-export type GuptaFunctionalClassDefSpec = GuptaClassBaseSpec & {
-  classType: GuptaClassType.FUNCTIONAL;
   inheritedFrom: string[];
   classVars: GuptaParams;
   instanceVars: GuptaParams;
   functions: GuptaFunctionSpec[];
-};
-
-export type GuptaDataFieldClassDefSpec = GuptaClassBaseSpec & {
-  classType: GuptaClassType.DATA_FIELD;
-  inheritedFrom: string[];
-  functions: GuptaFunctionSpec[];
   actions: GuptaEventHandlerSpec[];
-  dataType: GuptaPrimitive;
+  dataType?: GuptaPrimitive;
 };
-
-export type GuptaClassDefSpec =
-  | GuptaFunctionalClassDefSpec
-  | GuptaDataFieldClassDefSpec;
 
 export type GuptaPopupMenuSpec = {
   type: GuptaSpecType.POPUP_MENU;

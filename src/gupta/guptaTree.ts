@@ -4,7 +4,7 @@ import path from "node:path";
 import packageJSON from "../../package.json";
 import { getGuptaAst } from "./ast";
 import { guptaEnvDTS } from "./env";
-import { _errorConfig } from "./error";
+import { Context } from "./error";
 import { parseGuptaFiles } from "./parse/file";
 import { type GlobalDeclarations } from "./parse/global_declarations";
 import { type GuptaFile } from "./parse/types";
@@ -29,12 +29,13 @@ const writeGlobalFiles = async (targetDir: string) => {
 };
 
 const writeFiles = async (
+  ctx: Context,
   targetDir: string,
   files: Record<string, GuptaFile>,
   declarations: GlobalDeclarations,
 ) => {
   for (const [fileName, guptaFile] of Object.entries(files)) {
-    const fileContent = renderGuptaFile(guptaFile, declarations).trim();
+    const fileContent = renderGuptaFile(ctx, guptaFile, declarations).trim();
     if (!fileContent) continue;
     const targetFile = path.join(targetDir, fileName + ".ts");
     const fileDir = path.dirname(targetFile);
@@ -52,7 +53,7 @@ const writeFiles = async (
   );
   await fs.writeFile(
     path.join(targetDir, "Global_Declarations", "functions.ts"),
-    renderGlobalFunctions(declarations),
+    renderGlobalFunctions(ctx, declarations),
   );
   await fs.writeFile(
     path.join(targetDir, "Global_Declarations", "classes.ts"),
@@ -66,12 +67,11 @@ const writeFiles = async (
         "Constants",
         constsName + ".ts",
       ),
-      renderGlobalConstants(consts),
+      renderGlobalConstants(ctx, consts),
     );
   }
 };
 
-// TODO: Load also all apl file declarations and aprs them into separate files
 export const guptaTree = async ({ source }: { source: string }) => {
   if (path.extname(source) !== ".apt")
     throw new Error("Only works for .apt (gupta) files");
@@ -84,8 +84,8 @@ export const guptaTree = async ({ source }: { source: string }) => {
 
   const projectRootDir = path.resolve(sourcesDir, "..");
 
-  _errorConfig.sourceFile = path.resolve(source);
-  const ast = getGuptaAst(await readFile(source));
+  const ctx = new Context(source);
+  const ast = getGuptaAst(ctx, await readFile(source));
 
   const allAvailableLibs = await Array.fromAsync(
     fs.glob(path.join("{LCL,ShareableFiles}", "**", "*.{apl,APL}"), {
@@ -112,6 +112,7 @@ export const guptaTree = async ({ source }: { source: string }) => {
     }),
   );
   const { files, declarations, libraries } = await parseGuptaFiles(
+    ctx,
     ast,
     availableLibsMap,
   );
@@ -120,10 +121,11 @@ export const guptaTree = async ({ source }: { source: string }) => {
   await fs.rm(tsRootDir, { recursive: true, force: true });
 
   await writeGlobalFiles(tsRootDir);
-  await writeFiles(tsRootDir, files, declarations);
+  await writeFiles(ctx, tsRootDir, files, declarations);
   await Array.fromAsync(
-    libraries.map(async ({ dirName, files, declarations }) => {
+    libraries.map(async ({ ctx, dirName, files, declarations }) => {
       await writeFiles(
+        ctx,
         path.join(tsRootDir, "Libraries", dirName),
         files,
         declarations,

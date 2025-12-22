@@ -1,8 +1,9 @@
+import type { Context } from "../error";
 import { getPrimitve } from "../parse/shared";
 import { type GuptaBaseSpec } from "../parse/types";
 import { type GuptaFileContents, TS_TYPES } from "./shared";
 
-export const renderHandles = ({ specs }: GuptaFileContents) => {
+export const renderHandles = (ctx: Context, { specs }: GuptaFileContents) => {
   let content = "";
   if ("Option_Button" in specs) {
     content += "// Inputs: Option Button\n";
@@ -33,10 +34,9 @@ export const renderHandles = ({ specs }: GuptaFileContents) => {
             const classType = (dataField as any).props.find(
               ({ name }: { name: string }) => name === "Class",
             ).value;
-            // FIXME
             const usedType =
               dataType === "Class Default" ? classType : dataType;
-            type = TS_TYPES[getPrimitve(usedType)];
+            type = TS_TYPES[getPrimitve(ctx, usedType)];
           } catch {
             // do nothing
           }

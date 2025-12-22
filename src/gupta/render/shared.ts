@@ -29,8 +29,11 @@ export const indent = (level: number, str?: string) => {
   const whitespace = "  ".repeat(level);
   if (str === undefined) return whitespace;
   if (!str) return "";
-  return str
-    .split("\n")
-    .map((l) => whitespace + l)
-    .join("\n");
+  return (
+    str
+      .split("\n")
+      // no whitespace on empty lines
+      .map((l) => (l ? whitespace + l : ""))
+      .join("\n")
+  );
 };

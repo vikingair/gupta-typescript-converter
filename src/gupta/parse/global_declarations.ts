@@ -3,8 +3,8 @@ import {
   GuptaAstElemType,
   type GuptaAttributeElem,
 } from "../ast";
-import { throwErr } from "../error";
-import { parseDataFieldClass, parseFunctionalClass } from "./classes";
+import type { Context } from "../error";
+import { parseGenericClass } from "./classes";
 import { getSpec } from "./file";
 import { getParameters, getPrimitve, renderComment } from "./shared";
 import {
@@ -28,6 +28,7 @@ export type GlobalDeclarations = {
 };
 
 export const getGlobalDeclarations = (
+  ctx: Context,
   elem: GuptaAstElem,
 ): GlobalDeclarations => {
   const result: GlobalDeclarations = {
@@ -63,29 +64,26 @@ export const getGlobalDeclarations = (
         (c.children || [])
           .map((c2) => {
             if (c2.type !== GuptaAstElemType.OBJECT)
-              return throwErr(
-                "getGlobalDeclarations: unexpected children type",
-                { elem: c2 },
-              );
+              return ctx
+                .withElem(c2)
+                .throw("getGlobalDeclarations: unexpected children type");
 
             if (c2.stm === "Enumerations") {
               const enums = (c2.children || []).map<ConstParam>((c3) => {
                 if (c3.type !== GuptaAstElemType.ATTRIBUTE) {
-                  return throwErr(
-                    "getGlobalDeclarations: unexpected children type of Enumerations",
-                    {
-                      elem: c3,
-                    },
-                  );
+                  return ctx
+                    .withElem(c3)
+                    .throw(
+                      "getGlobalDeclarations: unexpected children type of Enumerations",
+                    );
                 }
 
                 if (c3.name !== "Enum") {
-                  return throwErr(
-                    "getGlobalDeclarations: unexpected attribute type in Enumerations",
-                    {
-                      elem: c3,
-                    },
-                  );
+                  return ctx
+                    .withElem(c3)
+                    .throw(
+                      "getGlobalDeclarations: unexpected attribute type in Enumerations",
+                    );
                 }
 
                 const items = c3
@@ -97,12 +95,11 @@ export const getGlobalDeclarations = (
                   .map((c4) => (c4 as GuptaAttributeElem).value);
 
                 if (!items.length) {
-                  return throwErr(
-                    "getGlobalDeclarations: unexpected empty items in Enumerations",
-                    {
-                      elem: c3,
-                    },
-                  );
+                  return ctx
+                    .withElem(c3)
+                    .throw(
+                      "getGlobalDeclarations: unexpected empty items in Enumerations",
+                    );
                 }
 
                 return { enumName: c3.value, items };
@@ -116,26 +113,22 @@ export const getGlobalDeclarations = (
                 return { comment: c3.stm };
 
               if (c3.type !== GuptaAstElemType.ATTRIBUTE)
-                return throwErr(
-                  "getGlobalDeclarations: unexpected param children type",
-                  {
-                    elem: c3,
-                  },
-                );
+                return ctx
+                  .withElem(c3)
+                  .throw(
+                    "getGlobalDeclarations: unexpected param children type",
+                  );
 
               const m = c3.value.match(/^(.+?)\s*=\s*([\s\S]+)$/);
               if (!m)
-                return throwErr(
-                  "getGlobalDeclarations: cannot parse param children",
-                  {
-                    elem: c3,
-                  },
-                );
+                return ctx
+                  .withElem(c3)
+                  .throw("getGlobalDeclarations: cannot parse param children");
               const [, n, v] = m;
 
               return {
                 name: n,
-                type: getPrimitve(c3.name, c3.stm),
+                type: getPrimitve(ctx, c3.name, c3.stm),
                 value: v.trim(),
               };
             });
@@ -151,11 +144,13 @@ export const getGlobalDeclarations = (
       continue;
     }
     if (c.stm === "Variables") {
-      result.variables = getParameters(c);
+      result.variables = getParameters(ctx, c);
       continue;
     }
     if (c.stm === "Internal Functions") {
-      result.functions = (c.children || []).map(getSpec).filter(Boolean);
+      result.functions = (c.children || [])
+        .map((c) => getSpec(ctx, c))
+        .filter(Boolean);
       continue;
     }
     if (c.stm === "Named Exceptions") {
@@ -178,10 +173,11 @@ export const getGlobalDeclarations = (
           continue;
         }
         if (c2.type !== GuptaAstElemType.ATTRIBUTE)
-          return throwErr(
-            "getGlobalDeclarations: Class Definitions: unexpected children type",
-            { elem: c2 },
-          );
+          return ctx
+            .withElem(c2)
+            .throw(
+              "getGlobalDeclarations: Class Definitions: unexpected children type",
+            );
 
         const descriptionFromComments = comments.map(renderComment).join("\n");
         comments.length = 0;
@@ -207,7 +203,7 @@ export const getGlobalDeclarations = (
         }
 
         if (c2.name === "Data Field Class") {
-          result.classes[String(c2.value)] = parseDataFieldClass({
+          result.classes[String(c2.value)] = parseGenericClass(ctx, {
             elem: c2,
             descriptionFromComments,
           });
@@ -275,7 +271,10 @@ export const getGlobalDeclarations = (
         }
 
         if (c2.name === "Custom Control Class") {
-          // TODO: Handle them as well
+          result.classes[String(c2.value)] = parseGenericClass(ctx, {
+            elem: c2,
+            descriptionFromComments,
+          });
           continue;
         }
 
@@ -285,13 +284,14 @@ export const getGlobalDeclarations = (
         }
 
         if (c2.name !== "Functional Class") {
-          return throwErr(
-            "getGlobalDeclarations: Class Definitions: unexpected attribute name",
-            { elem: c2 },
-          );
+          return ctx
+            .withElem(c2)
+            .throw(
+              "getGlobalDeclarations: Class Definitions: unexpected attribute name",
+            );
         }
 
-        result.classes[String(c2.value)] = parseFunctionalClass({
+        result.classes[String(c2.value)] = parseGenericClass(ctx, {
           elem: c2,
           descriptionFromComments,
         });
@@ -307,7 +307,7 @@ export const getGlobalDeclarations = (
       // TODO
       continue;
     }
-    throw new Error("getGlobalDeclarations: Unhandled child stm: " + c.stm);
+    ctx.withElem(c).throw("getGlobalDeclarations: Unhandled child stm");
   }
 
   return result;

@@ -1,3 +1,5 @@
+import type { Context } from "./error";
+
 export const enum GuptaAstElemType {
   ATTRIBUTE = 0,
   OBJECT = 1,
@@ -219,12 +221,12 @@ const getAstElemType = (
   return GuptaAstElemType.OBJECT;
 };
 
-const getAstElem = (base: GuptaAstElemBase): GuptaAstElem => {
+const getAstElem = (ctx: Context, base: GuptaAstElemBase): GuptaAstElem => {
   const type = getAstElemType(base.stm, base.parent?.type);
   if (type === GuptaAstElemType.ATTRIBUTE) {
     const m = base.stm.match(/^([a-z0-9./ ]+):([\s\S]*)/i);
     if (!m) {
-      throw new Error("cannot match attribute: " + base.stm);
+      return ctx.throw("cannot match attribute: " + base.stm);
     }
     return {
       ...base,
@@ -235,7 +237,7 @@ const getAstElem = (base: GuptaAstElemBase): GuptaAstElem => {
   } else if (type === GuptaAstElemType.BOOLEAN_ATTRIBUTE) {
     const m = base.stm.match(/^([a-z0-9./ ]+)\?([\s\S]*)/i);
     if (!m) {
-      throw new Error("cannot match boolean attribute: " + base.stm);
+      return ctx.throw("cannot match boolean attribute: " + base.stm);
     }
     return {
       ...base,
@@ -280,7 +282,7 @@ const getAstElem = (base: GuptaAstElemBase): GuptaAstElem => {
   }
 };
 
-export const getGuptaAst = (content: string): GuptaAstElem => {
+export const getGuptaAst = (ctx: Context, content: string): GuptaAstElem => {
   const lines = content
     .replaceAll("\t", "  ")
     .replaceAll(/\r/g, "")
@@ -326,7 +328,7 @@ export const getGuptaAst = (content: string): GuptaAstElem => {
 
     const lineMatch = l.match(/^.head (\d+) ([+-])\s+(.*)$/);
     if (!lineMatch) {
-      throw new Error("Did find unexpected line to be processed:\n" + l);
+      return ctx.throw("Did find unexpected line to be processed:\n" + l);
     }
 
     const [, levelStr, plusOrMinus, content] = lineMatch;
@@ -347,7 +349,7 @@ export const getGuptaAst = (content: string): GuptaAstElem => {
     const isCollapsible = plusOrMinus === "+";
 
     while (level <= current.level) {
-      if (!current.parent) throw new Error("No parent found");
+      if (!current.parent) ctx.throw("No parent found");
       current = current.parent;
     }
 
@@ -356,7 +358,7 @@ export const getGuptaAst = (content: string): GuptaAstElem => {
       multilineContent,
       current.type === GuptaAstElemType.COMMENT,
     );
-    const elem = getAstElem({
+    const elem = getAstElem(ctx, {
       stm,
       level,
       parent: current,

@@ -1,4 +1,5 @@
 import { type GuptaAstElem, GuptaAstElemType } from "../ast";
+import type { Context } from "../error";
 import { getEvenHandlerSpec } from "./file";
 import {
   type GuptaFunctionSpec,
@@ -65,6 +66,7 @@ export const renderInlineComment = (elem: GuptaAstElem): string | undefined =>
     : undefined;
 
 export const getSpecWithoutChildren = (
+  ctx: Context,
   elem: GuptaAstElem,
 ): GuptaSpec | undefined => {
   // TODO: Maybe handle "RESOURCE" data for "Icon File:" attribute
@@ -72,10 +74,9 @@ export const getSpecWithoutChildren = (
     elem.data &&
     !("INHERITPROPS" in elem.data) &&
     !Object.keys(elem.data).some((k) => k.startsWith("RESOURCE"))
-  )
-    throw new Error(
-      `getSpecWithoutChildren: Unhandled data: (${elem.type}) ${elem.stm}`,
-    );
+  ) {
+    ctx.withElem(elem).throw("getSpecWithoutChildren: Unhandled data");
+  }
   const inlineComment = renderInlineComment(elem);
   switch (elem.type) {
     case GuptaAstElemType.ATTRIBUTE: {
@@ -125,16 +126,18 @@ export const getSpecWithoutChildren = (
       };
     case GuptaAstElemType.ON: {
       if (!CONFIG.verbose) return undefined;
-      return getEvenHandlerSpec(elem, inlineComment);
+      return getEvenHandlerSpec(ctx, elem, inlineComment);
     }
     default:
-      throw new Error(
-        `Cannot render type without children: (${elem.type}) ${elem.stm}`,
-      );
+      return ctx.withElem(elem).throw("Cannot render type without children");
   }
 };
 
-export const getPrimitve = (t: string, stm?: string): GuptaPrimitive => {
+export const getPrimitve = (
+  ctx: Context,
+  t: string,
+  stm?: string,
+): GuptaPrimitive => {
   // TODO: What does "Receive" mean?
   switch (t.replace(/^Receive /, "")) {
     case "Boolean":
@@ -158,11 +161,11 @@ export const getPrimitve = (t: string, stm?: string): GuptaPrimitive => {
     case "FunctionalVar":
       return GuptaPrimitive.FUNCTION;
     default:
-      throw new Error(`Cannot get primitive of: ${t}. Stm: ${stm}`);
+      ctx.throw(`Cannot get primitive of: ${t}. Stm: ${stm}`);
   }
 };
 
-export const getParameters = (elem: GuptaAstElem): GuptaParams =>
+export const getParameters = (ctx: Context, elem: GuptaAstElem): GuptaParams =>
   elem.children?.map<GuptaFunctionSpec["parameters"][number]>((e) => {
     if (e.type === GuptaAstElemType.COMMENT) {
       return { comment: renderComment(e) };
@@ -173,18 +176,21 @@ export const getParameters = (elem: GuptaAstElem): GuptaParams =>
     }
     if (e.stm.startsWith("FunctionalVar: ")) {
       const m = e.stm.match(/^FunctionalVar: (.+?)(\[.+\])?$/)!;
-      const spec = getSpecWithoutChildren(e.children![0]);
+      const spec = getSpecWithoutChildren(ctx, e.children![0]);
       if (spec?.type !== GuptaSpecType.ATTRIBUTE)
-        throw new Error("getFunctionSpec: Unexpected FunctionalVar");
+        return ctx
+          .withElem(e)
+          .throw("getFunctionSpec: Unexpected FunctionalVar");
       return { name: m[1], className: spec.value, isArray: !!m[2] };
     }
 
     const m = e.stm.match(/^(.+): (.+?)(\[.+\])?$/);
-    if (!m) throw new Error("getFunctionSpec: Unexpected parameter: " + e.stm);
+    if (!m)
+      return ctx.withElem(e).throw("getFunctionSpec: Unexpected parameter");
 
     return {
       name: m[2].trim(),
-      type: getPrimitve(m[1], e.stm),
+      type: getPrimitve(ctx, m[1], e.stm),
       isArray: !!m[3],
     };
   }) ?? [];

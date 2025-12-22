@@ -1,4 +1,5 @@
 import { type GuptaAstElem } from "../ast";
+import type { Context } from "../error";
 import { type GlobalDeclarations } from "../parse/global_declarations";
 import {
   type GuptaFile,
@@ -23,6 +24,7 @@ const renderData = (data: GuptaAstElem["data"]): string => {
 };
 
 const buildFileContents = (
+  ctx: Context,
   spec: GuptaSpec,
   contents: GuptaFileContents,
 ): void => {
@@ -36,7 +38,7 @@ const buildFileContents = (
         contents.specs[clazz] ??= [];
         contents.specs[clazz].push({ ...spec, clazz: undefined });
       }
-      spec.props.forEach((s) => buildFileContents(s, contents));
+      spec.props.forEach((s) => buildFileContents(ctx, s, contents));
       break;
     }
     case GuptaSpecType.POPUP_MENU:
@@ -56,7 +58,7 @@ const buildFileContents = (
       break;
     default:
       // @ts-expect-error spec.type should be of type never
-      throw new Error("buildFileContents: unhandled spec.type: " + spec.type);
+      ctx.throw("buildFileContents: unhandled spec.type: " + spec.type);
   }
 };
 
@@ -150,6 +152,7 @@ const renderGlobals = (spec: GuptaSpec) => {
 };
 
 export const renderGuptaFile = (
+  ctx: Context,
   file: GuptaFile,
   declarations: GlobalDeclarations,
 ) => {
@@ -165,11 +168,11 @@ export const renderGuptaFile = (
     },
     functions: [],
   };
-  buildFileContents(file.spec, contents);
+  buildFileContents(ctx, file.spec, contents);
 
   return (
     renderWindowVars(contents.windowVars.specs) +
-    renderHandles(contents) +
+    renderHandles(ctx, contents) +
     renderFunctions(contents.functions, contents.windowVars.names) +
     Object.entries(contents.specs)
       .toReversed()

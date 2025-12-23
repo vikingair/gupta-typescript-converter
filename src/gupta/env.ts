@@ -11,8 +11,9 @@ declare global {
   let GET_SAME: unknown;
   let ROW_Selected: unknown;
   let ROW_MarkDeleted: unknown;
-  let VALIDATE_Cancel: unknown;
-  let VALIDATE_Ok: unknown;
+  let VALIDATE_Cancel: number;
+  let VALIDATE_Ok: number;
+  let VALIDATE_OkClearFlag: number;
   let DATE_RANGE: unknown;
   let TBL_FillAll: unknown;
   let TBL_Flag_SingleSelection: unknown;
@@ -42,6 +43,14 @@ declare global {
   let SalEnableWindow: (...args: any[]) => any;
   let SalIsWindowVisible: (...args: any[]) => any;
   let SalAppEnable: (...args: any[]) => any;
+  let SalNumberToWindowHandle: (...args: any[]) => any;
+  let SalTrackPopupMenu: (...args: any[]) => any;
+  let SalSendClassMessage: (...args: any[]) => any;
+  let SalParentWindow: (...args: any[]) => any;
+  let SetRptPreview: (...args: any[]) => any;
+  let SetRptAllRecords: (...args: any[]) => any;
+  let SalGetType: (...args: any[]) => any;
+  let SalGetFirstChild: (...args: any[]) => any;
   let SalAppDisable: (...args: any[]) => any;
   let SalEndDialog: (...args: any[]) => any;
   let SalSetFocus: (...args: any[]) => any;

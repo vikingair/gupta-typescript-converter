@@ -149,10 +149,25 @@ export const parseGenericClass = (
           // TODO
           break;
         }
-        case "Display Settings": {
+        case "Ribbon":
+        case "Menu":
+        case "Tool Bar":
+        case "Contents":
+          // TODO: From "Form Window Class"
+          break;
+        case "List Initialization":
+          // TODO: From "Combo Box Class"
+          break;
+        case "List Values":
+        case "Cell Options":
+          // TODO: From "Column Class"
+          break;
+        case "Scaling": // from "Picture Class"
+        case "Memory Settings": // from "Child Table Class"
+        case "Window Location and Size":
+        case "Display Settings":
           // ignored
           break;
-        }
         default:
           return ctx.withElem(c).throw("parseGenericClass: unexpected object");
       }

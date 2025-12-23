@@ -17,14 +17,14 @@ import { readFile } from "./utils";
 
 const writeGlobalFiles = async (targetDir: string) => {
   await fs.mkdir(targetDir, { recursive: true });
-  await fs.writeFile(
-    path.join(targetDir, `generator_version.${packageJSON.version}.txt`),
-    "Commit history can be found at: https://github.com/vikingair/gupta-typescript-converter\n",
-  );
   await fs.writeFile(path.join(targetDir, "env.ts"), guptaEnvDTS);
   await fs.copyFile(
     path.join(CLI.meta.dir, "src", "tsconfig.template.json"),
     path.join(targetDir, "tsconfig.json"),
+  );
+  await fs.copyFile(
+    path.join(CLI.meta.dir, "src", "README.template.md"),
+    path.join(targetDir, `README.${packageJSON.version}.md`),
   );
 };
 

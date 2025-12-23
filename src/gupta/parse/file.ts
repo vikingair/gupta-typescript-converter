@@ -39,7 +39,7 @@ const BLACK_LIST_OBJECTS = new Set([
   "Window Location and Size",
 ]);
 
-// TODO: Replace the "Late Bound" operator ".." correctly as "/*late bound*/this."
+// TODO: Replace the "Late Bound" operator ".." correctly as "/*GT1:late bound*/this."
 // including especially the transformation of string templates from Gupta to TypeScript
 // :foo_bar -> ${foo_bar}
 // :arr[entry] -> ${arr[entry]}
@@ -108,6 +108,19 @@ export const sanitizeStatement = (str: string) => {
         // "=" -> "==="
         result += "===";
       }
+    } else if (
+      // .. -> /*GT1:late bound*/this.
+      // .. -> /*GT2:late bound*/.
+      c.toLowerCase() === "." &&
+      str[i + 1]?.toLowerCase() === "." &&
+      /[a-z0-9_]/i.test(str[i + 2] ?? "")
+    ) {
+      if (/[a-z0-9_\])]/i.test(str[i - 1] ?? "")) {
+        result += "/*GT2:late bound*/.";
+      } else {
+        result += "/*GT1:late bound*/this.";
+      }
+      i++;
     } else if (
       // OR -> ||
       c.toLowerCase() === "o" &&

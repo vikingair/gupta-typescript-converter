@@ -38,6 +38,7 @@ const renderClass = (
   const methodNames = Array.from(
     new Set(spec.functions.map(({ name }) => name)),
   );
+  // TODO: Consider all inherited instanceVars, classVars and methodNames
   const instanceVars = getParameterNames(spec.instanceVars)
     .concat(getParameterNames(spec.classVars))
     .concat(methodNames);
@@ -58,6 +59,7 @@ const renderClass = (
 
   return [
     spec.description,
+    // TODO: Fix class inheritance to support multi-inheritance
     `class ${name}${spec.inheritedFrom.length ? ` extends ${spec.inheritedFrom.join(", ")}` : ""} {
 ${indent(1, classBody)}
 }\n\n`,

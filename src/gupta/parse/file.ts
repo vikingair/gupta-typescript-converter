@@ -39,7 +39,6 @@ const BLACK_LIST_OBJECTS = new Set([
   "Window Location and Size",
 ]);
 
-// TODO: Replace the "Late Bound" operator ".." correctly as "/*GT1:late bound*/this."
 // including especially the transformation of string templates from Gupta to TypeScript
 // :foo_bar -> ${foo_bar}
 // :arr[entry] -> ${arr[entry]}

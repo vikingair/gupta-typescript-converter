@@ -125,8 +125,9 @@ const renderWindowVars = (specs: GuptaWindowVarsSpec[]) => {
       .flatMap(({ vars }) =>
         vars.map((p) => {
           if ("comment" in p) return `// ${p.comment}`;
-          if ("type" in p) return `let ${p.name}: ${TS_TYPES[p.type]};`;
-          return `let ${p.name}: ${p.className};`;
+          if ("type" in p)
+            return `let ${p.name}: ${TS_TYPES[p.type]}${p.isArray ? "[]" : ""};`;
+          return `let ${p.name}: ${p.className}${p.isArray ? "[]" : ""};`;
         }),
       )
       .join("\n") +

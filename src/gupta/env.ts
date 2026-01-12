@@ -19,6 +19,8 @@ declare global {
   let TBL_Flag_SelectableCols: unknown;
   let TBL_MaxRow: number;
   let TBL_MinRow: number;
+  let TBL_SortDescending: number;
+  let TBL_SortIncreasing: number;
   let TRUE: true;
   let VALIDATE_Cancel: number;
   let VALIDATE_Ok: number;
@@ -52,7 +54,21 @@ declare global {
 
   let SalFmtFieldToStr: (...args: any[]) => any;
   let SalFmtFormatDateTime: (...args: any[]) => any;
-  let SalFmtFormatNumber: (...args: any[]) => any;
+  /**
+   * Formats a given number as string using the provided format string.
+   *
+   * Character	Description
+   * \`0\`  Digit placeholder: Displays a digit or a zero if the number is zero.
+   * \`#\`	Digit placeholder: Displays a digit or nothing (suppresses leading/trailing zeros).
+   * \`.\`	Decimal placeholder: Defines the location of the decimal point.
+   * \`,\`	Thousand separator: Inserts commas between thousands.
+   * \`%\`	Percentage: Multiplies the value by 100 and appends a % sign.
+   * \`;\`	Section separator: Used to define separate formats for positive, negative, and zero values.
+   *
+   * Example:
+   * SalFmtFormatNumber( 1234.567, '#,##0.00' ) === "1,234.57"
+   */
+  let SalFmtFormatNumber: (nNumber: number, sFormat: string) => string;
   let SalFmtSetInputMask: (...args: any[]) => any;
 
   let SalGetFirstChild: (...args: any[]) => any;
@@ -77,8 +93,16 @@ declare global {
   let SalMessageBox: (...args: any[]) => any;
 
   let SalModalDialog: (...args: any[]) => any;
-  let SalNumberMod: (...args: any[]) => any;
-  let SalNumberToStrX: (...args: any[]) => any;
+  /**
+   * Returns remainder of division.
+   * Result: nNumber1 % nNumber2
+   */
+  let SalNumberMod: (nNumber1: number, nNumber2: number) => number;
+  /**
+   * Standard SalNumberToStr: Converts a number to a string using the Windows OS settings
+   * (e.g., in Germany, it produces "12,50" with a comma).
+   */
+  let SalNumberToStrX: (nNumber: number, nDecimalPlaces: number) => string;
   let SalNumberToWindowHandle: (...args: any[]) => any;
   let SalParentWindow: (...args: any[]) => any;
   let SalPostMsg: (...args: any[]) => any;
@@ -100,15 +124,50 @@ declare global {
 
   let SalStatusSetText: (...args: any[]) => any;
 
-  let SalStrLeftX: (...args: any[]) => any;
+  /**
+   * Returns substring from left part of given string.
+   *
+   * Standard (SalStrLeft): Counts Characters.
+   * Extended (SalStrLeftX): Counts Bytes.
+   *
+   * Example:
+   * SalStrLeftX( "foo", 2 ) === "fo"
+   */
+  let SalStrLeftX: ( sInput: string, nLen: number ) => string;
   let SalStrLength: (...args: any[]) => any;
+  /**
+   * Returns substring from right part of given string.
+   *
+   * Standard (SalStrRight): Counts Characters.
+   * Extended (SalStrRightX): Counts Bytes.
+   *
+   * Example:
+   * SalStrRightX( "bar", 2 ) === "ar"
+   */
   let SalStrRightX: (...args: any[]) => any;
   /**
    * E.g. SalStrMidX( "ABC-1234-XYZ", 4, 4 ) === "1234"
    */
   let SalStrMidX: (sString: string, nStart: number, nLength: number) => string;
-  let SalStrRepeatX: (...args: any[]) => any;
-  let SalStrScan: (...args: any[]) => any;
+  /**
+   * Example: SalStrRepeat( "A", 5 ) === "AAAAA"
+   */
+  let SalStrRepeatX: (sChar: string, nByteLength: number) => string;
+  /**
+   * Returns index where search string was found in source string.
+   * Returns -1 if not found.
+   *
+   * 1. It is Case-Insensitive.
+   * It does not distinguish between uppercase and lowercase.
+   * SalStrScan( "Hello World", "world" ) returns 6.
+   *
+   * 2. It supports Wildcards (Important!)
+   * This is the feature that trips up most developers. SalStrScan supports the same wildcards as a SQL LIKE clause:
+   *
+   * \`%\`: Matches any set of characters.
+   * \`_\`: Matches any single character.
+   */
+  let SalStrScan: (sSourceString: string, sSearchString: string) => number;
   let SalStrTokenize: (...args: any[]) => any;
   let SalStrToNumber: (...args: any[]) => any;
   let SalStrTrim: (...args: any[]) => any;
@@ -160,7 +219,7 @@ declare global {
    * Important: This does not highlight the row visually (use SalTblSetRowFlags with ROW_Selected for that).
    */
   let SalTblReset: (hWndTbl: any) => void;
-  let SalTblSetColumnText: (...args: any[]) => any;
+  let SalTblSetColumnText: (hWndTbl: any, nRow: number, sData: string) => void;
   /**
    * It makes the specified nRow the "current" row.
    * Any subsequent calls to get column values will retrieve data from this row.
@@ -184,6 +243,14 @@ declare global {
    * - TBL_Flag_SizableCols: Allows the user to resize column headers.
    */
   let SalTblSetTableFlags: (hWndTbl: any, nFlags: number, bSet: boolean) => any;
+  /**
+   * Unlike an SQL ORDER BY clause (which sorts data before it reaches your application),
+   * this function sorts data that is already populated in the table.
+   *
+   * TBL_SortAscending (A to Z, 0 to 9)
+   * TBL_SortDescending (Z to A, 9 to 0)
+   */
+  let SalTblSortRows: (hWndTbl: any, hWndCol: any, nFlags: number) => boolean;
 
   let SalTrackPopupMenu: (...args: any[]) => any;
   let SalUpdateWindow: (...args: any[]) => any;
@@ -244,6 +311,7 @@ declare global {
   let HourGlass: (...args: any[]) => any;
 
   // Visual Toolchest - VTSTR.APL
+  let VisArrayFindString: (...args: any[]) => any;
   let VisStrChoose: (...args: any[]) => any;
   let VisStrSubstitute: (...args: any[]) => any;
   let VisWaitCursor: (...args: any[]) => any;

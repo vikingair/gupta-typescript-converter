@@ -1,6 +1,6 @@
 {
   "name": "gupta-typescript-converter",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "bin": {
     "gupta-typescript-converter": "./build/cli.js"
   },

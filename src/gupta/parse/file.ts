@@ -166,15 +166,24 @@ export const getBodyStatements = (
   const stms: GuptaBodyStatement[] = [];
   let lastIf: GuptaIfStatement | undefined = undefined;
   if (elem.inlineComment)
-    stms.push({ type: GuptaStatment.COMMENT, content: elem.inlineComment });
+    stms.push({
+      type: GuptaStatment.COMMENT,
+      content: renderInlineComment(elem) || "//",
+    });
 
   for (const c of elem.children || []) {
     if (c.inlineComment)
-      stms.push({ type: GuptaStatment.COMMENT, content: c.inlineComment });
+      stms.push({
+        type: GuptaStatment.COMMENT,
+        content: renderInlineComment(elem) || "//",
+      });
 
     switch (c.type) {
       case GuptaAstElemType.COMMENT: {
-        stms.push({ type: GuptaStatment.COMMENT, content: renderComment(c) });
+        stms.push({
+          type: GuptaStatment.COMMENT,
+          content: renderComment(c) || "//",
+        });
         break;
       }
       case GuptaAstElemType.IF: {

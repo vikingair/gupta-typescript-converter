@@ -21,10 +21,10 @@ const renderBodyStatement = (
       return `${i}let ${stm.left} = ${stm.right}`;
     }
     case GuptaStatment.COMMENT:
-      // TODO: Find the issue in the previous steps. Sometimes the comment is already formatted and sometimes not
-      return /^\s*\/\//.test(stm.content)
-        ? stm.content
-        : `${i}// ${stm.content}`;
+      // TODO: Render the comments prefix "//" only inside gupta/render
+      if (!/^\s*\/\//.test(stm.content))
+        throw new Error("Found not valid comment: " + stm.content);
+      return indent(level, stm.content);
     case GuptaStatment.RETURN:
       return `${i}return${stm.value ? " " + stm.value : ""};`;
     case GuptaStatment.SWITCH: {

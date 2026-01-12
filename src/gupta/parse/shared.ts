@@ -53,7 +53,7 @@ export const renderComment = (elem: GuptaAstElem): string =>
   elem.stm
     .split("\n")
     .filter((l) => l !== "!")
-    .map((l) => `${"  ".repeat(elem.level)}// ${l}`)
+    .map((l) => `// ${l}`)
     .concat(elem.children?.map(renderComment).filter(Boolean) || [])
     .join("\n");
 
@@ -61,7 +61,7 @@ export const renderInlineComment = (elem: GuptaAstElem): string | undefined =>
   elem.inlineComment
     ? elem.inlineComment
         .split("\n")
-        .map((l) => `${"  ".repeat(elem.level)}// ${l}`)
+        .map((l) => `// ${l}`)
         .join("\n") + "\n"
     : undefined;
 

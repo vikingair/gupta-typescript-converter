@@ -3,6 +3,9 @@ declare global {
   let DATETIME_Null: Date;
   let DATE_RANGE: unknown;
   let FALSE: false;
+  let FETCH_Ok: 0;
+  let FETCH_EOF: 1;
+  let FETCH_Null: 2;
   let GET_SAME: unknown;
   let NUMBER_Null: 0;
   let IDNO: unknown;
@@ -14,6 +17,8 @@ declare global {
   let TBL_FillAll: unknown;
   let TBL_Flag_SingleSelection: unknown;
   let TBL_Flag_SelectableCols: unknown;
+  let TBL_MaxRow: number;
+  let TBL_MinRow: number;
   let TRUE: true;
   let VALIDATE_Cancel: number;
   let VALIDATE_Ok: number;
@@ -47,6 +52,7 @@ declare global {
 
   let SalFmtFieldToStr: (...args: any[]) => any;
   let SalFmtFormatDateTime: (...args: any[]) => any;
+  let SalFmtFormatNumber: (...args: any[]) => any;
   let SalFmtSetInputMask: (...args: any[]) => any;
 
   let SalGetFirstChild: (...args: any[]) => any;
@@ -71,12 +77,16 @@ declare global {
   let SalMessageBox: (...args: any[]) => any;
 
   let SalModalDialog: (...args: any[]) => any;
+  let SalNumberMod: (...args: any[]) => any;
   let SalNumberToStrX: (...args: any[]) => any;
   let SalNumberToWindowHandle: (...args: any[]) => any;
   let SalParentWindow: (...args: any[]) => any;
   let SalPostMsg: (...args: any[]) => any;
   let SalQuit: (...args: any[]) => any;
   let SalReportPrint: (...args: any[]) => any;
+  let SalReportSetDateTimeVar: (...args: any[]) => any;
+  let SalReportSetNumberVar: (...args: any[]) => any;
+  let SalReportSetStringVar: (...args: any[]) => any;
   let SetRptAllRecords: (...args: any[]) => any;
   let SetRptPreview: (...args: any[]) => any;
 
@@ -150,6 +160,7 @@ declare global {
    * Important: This does not highlight the row visually (use SalTblSetRowFlags with ROW_Selected for that).
    */
   let SalTblReset: (hWndTbl: any) => void;
+  let SalTblSetColumnText: (...args: any[]) => any;
   /**
    * It makes the specified nRow the "current" row.
    * Any subsequent calls to get column values will retrieve data from this row.
@@ -179,14 +190,54 @@ declare global {
   let SalWaitCursor: (...args: any[]) => any;
 
   // SQL functions
-  let SqlDisconnect: (...args: any[]) => any;
-  let SqlCommit: (...args: any[]) => any;
-  let SqlConnect: (...args: any[]) => any;
-  let SqlExecute: (...args: any[]) => any;
-  let SqlExtractArgs: (...args: any[]) => any;
-  let SqlFetchNext: (...args: any[]) => any;
-  let SqlPrepare: (...args: any[]) => any;
-  let SqlPrepareAndExecute: (...args: any[]) => any;
+  /**
+   * Breaks the link between the hSql handle and the database, releasing any resources (memory, cursors) associated with that handle.
+   */
+  let SqlDisconnect: (hSql: any) => boolean;
+  /**
+   * Commits the current transaction. Any INSERT, UPDATE, or DELETE operations performed since the last commit (or rollback) are made permanent in the database.
+   */
+  let SqlCommit: (hSql: any) => boolean;
+  /**
+   * Connects the specified SQL Handle (hSql) to the database currently defined in the system variable SqlDatabase.
+   * Key Note: If the connection is successful, hSql becomes a live link to the database. You generally call this once at the start of a process or window.
+   */
+  let SqlConnect: (hSql: any) => boolean;
+  /**
+   * Runs the SQL statement that sits in the buffer from the last SqlPrepare call.
+   */
+  let SqlExecute: (hSql: any) => boolean;
+  /**
+   * It scans the provided SQL string (sSelect) and identifies all bind variables (items starting with a colon, like :sName). It populates the string array sBindVars with the names of these variables.
+   * Use Case: This is an advanced function used for Dynamic SQL. If you are building a generic reporting tool or a query builder where you don't know the variable names at compile time, this function helps you identify what variables need to be bound before execution.
+   */
+  let SqlExtractArgs: (sSelect: string, sBindVars: string) => any;
+  /**
+   * After running a SELECT statement, this function grabs the next available row from the database cursor and puts the data into the Into Variables (bind variables) defined in your query.
+   * Return: Returns TRUE if a row was fetched, and FALSE if the end of the result set is reached (No More Rows).
+   *
+   * nIntoFetch: Can become one of
+   * - FETCH_Ok (0): A row was successfully fetched.
+   * - FETCH_EOF (1): There are no more rows to fetch. You have reached the end of the result set.
+   * - FETCH_Null (2): A row was fetched, but one or more of the columns contained a NULL value and you did not handle it (e.g., using nvl() in SQL or checking indicators).
+   */
+  let SqlFetchNext: (hSql: any, nIntoFetch: number) => boolean;
+  /**
+   * Sends the SQL string (sSelect) to the database to be parsed, syntax-checked, and compiled. It does not execute the data modification or query yet.
+   * Use Case: useful when you want to compile a query once and then SqlExecute it multiple times with different bind variable values (performance optimization).
+   */
+  let SqlPrepare: (hSql: any, sSelect: string) => boolean;
+  /**
+   * This is a convenience function that combines SqlPrepare and SqlExecute into a single call.
+   * Use Case: The most common way to run standard queries where you don't need the performance benefit of pre-compiling.
+   */
+  let SqlPrepareAndExecute: (hSql: any, sSelect: string) => boolean;
+  /**
+   * Used to bind (or re-bind) the "Into" variables (the output variables) for a compiled SQL statement.
+   * Normally: SqlPrepare calls SqlVarSetup automatically behind the scenes.
+   * Explicit Use: You call SqlVarSetup manually if you have Prepared a statement once (to save performance) but the memory addresses of your variables have changed before you SqlExecute.
+   */
+  let SqlVarSetup: (hSql: any) => boolean;
 
   // other global functions
   let fnGetText: (...args: any[]) => any;
@@ -194,6 +245,7 @@ declare global {
 
   // Visual Toolchest - VTSTR.APL
   let VisStrChoose: (...args: any[]) => any;
+  let VisStrSubstitute: (...args: any[]) => any;
   let VisWaitCursor: (...args: any[]) => any;
 
   // action triggers

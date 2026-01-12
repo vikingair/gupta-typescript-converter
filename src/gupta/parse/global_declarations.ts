@@ -179,7 +179,9 @@ export const getGlobalDeclarations = (
               "getGlobalDeclarations: Class Definitions: unexpected children type",
             );
 
-        const descriptionFromComments = comments.map(renderComment).join("\n");
+        const descriptionFromComments = comments
+          .map((c) => renderComment(c))
+          .join("\n");
         comments.length = 0;
 
         result.classes[String(c2.value)] = parseGenericClass(ctx, {

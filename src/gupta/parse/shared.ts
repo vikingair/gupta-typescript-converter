@@ -49,12 +49,18 @@ export const CONFIG = {
   verbose: false,
 };
 
-export const renderComment = (elem: GuptaAstElem): string =>
+export const renderComment = (
+  elem: GuptaAstElem,
+  startLevel = elem.level,
+): string =>
   elem.stm
     .split("\n")
     .filter((l) => l !== "!")
-    .map((l) => `// ${l}`)
-    .concat(elem.children?.map(renderComment).filter(Boolean) || [])
+    .map((l) => `// ${"  ".repeat(elem.level - startLevel)}${l}`)
+    .concat(
+      elem.children?.map((c) => renderComment(c, startLevel)).filter(Boolean) ||
+        [],
+    )
     .join("\n");
 
 export const renderInlineComment = (elem: GuptaAstElem): string | undefined =>

@@ -1,4 +1,5 @@
-export const guptaEnvDTS = `export {};
+export {};
+
 declare global {
   let DATETIME_Null: Date;
   let DATE_RANGE: unknown;
@@ -133,7 +134,7 @@ declare global {
    * Example:
    * SalStrLeftX( "foo", 2 ) === "fo"
    */
-  let SalStrLeftX: ( sInput: string, nLen: number ) => string;
+  let SalStrLeftX: (sInput: string, nLen: number) => string;
   let SalStrLength: (...args: any[]) => any;
   /**
    * Returns substring from right part of given string.
@@ -177,7 +178,11 @@ declare global {
   /**
    * Returns TRUE if at least one row matches the flags provided.
    */
-  let SalTblAnyRows: (hWndTbl: any, nFlags: number, nFlagsMask: number) => boolean;
+  let SalTblAnyRows: (
+    hWndTbl: any,
+    nFlags: number,
+    nFlagsMask: number,
+  ) => boolean;
   /**
    * Removes the row at index nRow and shifts subsequent rows up.
    * Key Note: If the deleted row was editable and had unsaved changes, those changes are discarded.
@@ -187,7 +192,12 @@ declare global {
    * Iterates through the table starting after nRow to find a row where the flags match.
    * Common Use Case: iterating through all selected rows.
    */
-  let SalTblFindNextRow: (hWndTbl: any, nRow: number, nFlags: number, nFlagsMask: number) => boolean;
+  let SalTblFindNextRow: (
+    hWndTbl: any,
+    nRow: number,
+    nFlags: number,
+    nFlagsMask: number,
+  ) => boolean;
   /**
    * Fetches the text content of column hWndCol at row nRow and places it into the variable sText.
    * Note: This works even if the column is not currently visible or if the row is not the context row.
@@ -229,12 +239,23 @@ declare global {
    * Applies a state (like ROW_Selected or ROW_Edited) to every row in the table.
    * Use Case: A "Select All" button would call this with ROW_Selected and bSet = TRUE.
    */
-  let SalTblSetFlagsAnyRows: (hWndTbl: any, nFlags: number, nFlagsMask: number, bSet: boolean) => void;
+  let SalTblSetFlagsAnyRows: (
+    hWndTbl: any,
+    nFlags: number,
+    nFlagsMask: number,
+    bSet: boolean,
+  ) => void;
   /**
    * Moves the cursor and edit focus to the cell at the intersection of nRow and hWndCol.
    * nMin and nMax determine the text selection within the cell (e.g., passing 0, -1 selects all text in that cell).
    */
-  let SalTblSetFocusCell: (hWndTbl: any, nRow: number, hWndCol: any, nMin: number, nMax: number) => void;
+  let SalTblSetFocusCell: (
+    hWndTbl: any,
+    nRow: number,
+    hWndCol: any,
+    nMin: number,
+    nMax: number,
+  ) => void;
   /**
    * Turns specific table features on or off.
    *
@@ -335,4 +356,3 @@ declare global {
   // "When" listeners
   let addListener: (event: string, cb: () => boolean) => void;
 }
-`;

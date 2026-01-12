@@ -3,7 +3,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import packageJSON from "../../package.json";
 import { getGuptaAst } from "./ast";
-import { guptaEnvDTS } from "./env";
 import { Context } from "./error";
 import { parseGuptaFiles } from "./parse/file";
 import { type GlobalDeclarations } from "./parse/global_declarations";
@@ -17,13 +16,16 @@ import { readFile } from "./utils";
 
 const writeGlobalFiles = async (targetDir: string) => {
   await fs.mkdir(targetDir, { recursive: true });
-  await fs.writeFile(path.join(targetDir, "env.ts"), guptaEnvDTS);
   await fs.copyFile(
-    path.join(CLI.meta.dir, "src", "tsconfig.template.json"),
+    path.join(CLI.meta.dir, "templates", "env.ts"),
+    path.join(targetDir, "env.ts"),
+  );
+  await fs.copyFile(
+    path.join(CLI.meta.dir, "templates", "tsconfig.template.json"),
     path.join(targetDir, "tsconfig.json"),
   );
   await fs.copyFile(
-    path.join(CLI.meta.dir, "src", "README.template.md"),
+    path.join(CLI.meta.dir, "templates", "README.md"),
     path.join(targetDir, `README.${packageJSON.version}.md`),
   );
 };

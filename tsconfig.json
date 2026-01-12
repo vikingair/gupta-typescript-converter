@@ -29,5 +29,5 @@
   "include": [
     "src",
     "tests"
-  ]
+, "templates/tsconfig.template.json"  ]
 }

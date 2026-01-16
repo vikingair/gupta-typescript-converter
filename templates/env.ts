@@ -33,7 +33,23 @@ declare global {
   let SalAppEnable: (...args: any[]) => any;
 
   let SalArrayGetUpperBound: (...args: any[]) => any;
-  let SalArraySetUpperBound: (...args: any[]) => any;
+  /**
+   * Primary command for managing the memory and size of Dynamic Arrays.
+   *
+   * nDimension: The dimension you are resizing.
+   *   For a standard list (1D array), this is always 1.
+   *   For a grid (2D array), you can specify 1 (rows) or 2 (columns).
+   *
+   * nUpperBound: The index of the last element you want to exist.
+   * Important: This is not the "Count". Since Gupta arrays are 0-based, the count is nUpperBound + 1.
+   *
+   * Special Value: -1 is used to completely clear/reset the array.
+   */
+  let SalArraySetUpperBound: (
+    arr: unknown[],
+    nDimension: number,
+    nUpperBound: number,
+  ) => void;
 
   let SalBringWindowToTop: (...args: any[]) => any;
   let SalCenterWindow: (...args: any[]) => any;
@@ -171,8 +187,14 @@ declare global {
   let SalStrScan: (sSourceString: string, sSearchString: string) => number;
   let SalStrTokenize: (...args: any[]) => any;
   let SalStrToNumber: (...args: any[]) => any;
-  let SalStrTrim: (...args: any[]) => any;
-  let SalStrTrimX: (...args: any[]) => any;
+  /**
+   * Trims leading and trailing whitespaces.
+   */
+  let SalStrTrim: (sString: string) => string;
+  /**
+   * Very likely like SalStrTrim: Trims leading and trailing whitespaces.
+   */
+  let SalStrTrimX: (sString: string) => string;
   let SalStrUpperX: (...args: any[]) => any;
 
   /**
@@ -332,9 +354,27 @@ declare global {
   let HourGlass: (...args: any[]) => any;
 
   // Visual Toolchest - VTSTR.APL
-  let VisArrayFindString: (...args: any[]) => any;
-  let VisStrChoose: (...args: any[]) => any;
-  let VisStrSubstitute: (...args: any[]) => any;
+  /**
+   * Returns the index where the string was found in the array.
+   * Returns -1 if nothing found.
+   */
+  let VisArrayFindString: (sStrings: string[], sSearchFor: string) => number;
+  /**
+   * VisStrChoose( bExpression, sTrue, sFalse ) === (bExpression ? sTrue : sFalse)
+   */
+  let VisStrChoose: (
+    bExpression: boolean,
+    sTrue: string,
+    sFalse: string,
+  ) => string;
+  /**
+   * VisStrSubstitute( sSource, sSearch, sReplace ) === sSource.replace(sSearch, sReplace)
+   */
+  let VisStrSubstitute: (
+    sSource: string,
+    sSearch: string,
+    sReplace: string,
+  ) => string;
   let VisWaitCursor: (...args: any[]) => any;
 
   // action triggers

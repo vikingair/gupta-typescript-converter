@@ -58,13 +58,6 @@ export const renderHandles = (ctx: Context, { specs }: GuptaFileContents) => {
         .map(({ name }) => `let ${name}: Symbol;\n`)
         .join("") + "\n";
   }
-  if ("Dialog_Box" in specs) {
-    content += "// Window Handles: Dialog Box\n";
-    content +=
-      (specs["Dialog_Box"] as GuptaBaseSpec[])
-        .map(({ name }) => `let ${name}: Symbol;\n`)
-        .join("") + "\n";
-  }
   if ("Child_Table" in specs) {
     content += "// Window Handles: Child Table\n";
     content +=

@@ -150,12 +150,17 @@ export type GuptaObjectSpec = {
   clazz?: string;
 };
 
+export type GuptaAttributeSpec = GuptaBaseSpec & {
+  type: GuptaSpecType.ATTRIBUTE;
+  value: string;
+};
+
 export type GuptaSpec =
   | GuptaCommentSpec
   | GuptaFunctionSpec
+  | GuptaAttributeSpec
   | (GuptaBaseSpec &
       (
-        | { type: GuptaSpecType.ATTRIBUTE; value: string }
         | { type: GuptaSpecType.BOOLEAN_ATTRIBUTE; value: boolean }
         | GuptaObjectSpec
         | GuptaWindowVarsSpec

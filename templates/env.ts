@@ -11,8 +11,76 @@ declare global {
   let NUMBER_Null: 0;
   let IDNO: unknown;
   let IDYES: unknown;
-  let ROW_MarkDeleted: number;
   let ROW_Selected: number;
+  let ROW_Hidden: number;
+  let ROW_Edited: number;
+  let ROW_New: number;
+  let ROW_MarkDeleted: number;
+  let ROW_Unselectable: number;
+  /**
+   * To handle window lifecycles, validation, and user input.
+   */
+  let SAM_Click: number;
+  /**
+   * Fired immediately after a window or object is created, but before it becomes visible.
+   */
+  let SAM_Create: number;
+  /**
+   * Fired after the window and all its children are fully created and visible.
+   */
+  let SAM_CreateComplete: number;
+  /**
+   * Fired when the user tries to close the window (e.g., clicks the X).
+   */
+  let SAM_Close: number;
+  /**
+   * Fired immediately before the window is removed from memory.
+   */
+  let SAM_Destroy: number;
+  /**
+   * Fired when the cursor (focus) enters a field or window.
+   */
+  let SAM_SetFocus: number;
+  /**
+   * Fired when the cursor leaves a field (user tabs out or clicks elsewhere).
+   */
+  let SAM_KillFocus: number;
+  /**
+   * Fired just before SAM_KillFocus, but only if the user modified the data.
+   */
+  let SAM_Validate: number;
+  /**
+   * The user double-clicks an object.
+   */
+  let SAM_DoubleClick: number;
+  /**
+   * Fired every time the user types a character or deletes text in a field.
+   */
+  let SAM_AnyEdit: number;
+  /**
+   * The table needs to display a new row from the database.
+   */
+  let SAM_FetchRow: number;
+  /**
+   * The user clicks the small gray box to the left of a row.
+   */
+  let SAM_RowHeaderClick: number;
+  /**
+   * The very first message sent when the .exe is launched.
+   */
+  let SAM_AppStartup: number;
+  /**
+   * The application is about to terminate.
+   */
+  let SAM_AppExit: number;
+  /**
+   * It has no predefined behavior. It is the starting point for creating your own custom messages.
+   */
+  let SAM_User: number;
+  /**
+   * Fired repeatedly by SalTimerSet.
+   */
+  let SAM_Timer: number;
   let SqlDatabase: string;
   let STRING_Null: "";
   let TBL_FillAll: unknown;
@@ -54,6 +122,7 @@ declare global {
   let SalBringWindowToTop: (...args: any[]) => any;
   let SalCenterWindow: (...args: any[]) => any;
   let SalClearField: (...args: any[]) => any;
+  let SalColorSet: (...args: any[]) => any;
   let SalCreateWindow: (...args: any[]) => any;
 
   let SalDateConstruct: (...args: any[]) => any;
@@ -67,7 +136,12 @@ declare global {
   let SalDisableWindow: (...args: any[]) => any;
   let SalDlgSaveFile: (...args: any[]) => any;
   let SalEnableWindow: (...args: any[]) => any;
-  let SalEndDialog: (...args: any[]) => any;
+  /**
+   * Parameters:
+   * hWndDlg: The handle of the dialog (usually just hWndForm when called from inside the dialog code).
+   * nReturnVal: The number you want to send back to the caller. This number becomes the result of the {@link SalModalDialog} function
+   */
+  let SalEndDialog: (hWndDlg: any, nReturnVal: number) => void;
 
   let SalFmtFieldToStr: (...args: any[]) => any;
   let SalFmtFormatDateTime: (...args: any[]) => any;
@@ -94,6 +168,7 @@ declare global {
   let SalGetWindowText: (...args: any[]) => any;
 
   let SalHideWindow: (...args: any[]) => any;
+  let SalHideWindowAndLabel: (...args: any[]) => any;
   let SalInvalidateWindow: (...args: any[]) => any;
   let SalIsNull: (...args: any[]) => any;
   let SalIsWindowVisible: (...args: any[]) => any;
@@ -109,7 +184,26 @@ declare global {
   let SalMessageBeep: (...args: any[]) => any;
   let SalMessageBox: (...args: any[]) => any;
 
-  let SalModalDialog: (...args: any[]) => any;
+  /**
+   * Used to create and display a Dialog Box that requires immediate user attention.
+   *
+   * The key characteristic of a "Modal" dialog is that it stops the execution of the code that called it and prevents the user from interacting with the parent window until the dialog is closed.
+   *
+   * Counter part: {@link SalEndDialog}.
+   *
+   * Parameters
+   * templateName: The name of the Dialog Box object as defined in your Outline (e.g., dlgLogin or dlgSearch).
+   * hWndOwner: The handle of the window opening the dialog (usually hWndForm). This ensures the dialog stays on top of the parent.
+   * windowParameters: If your dialog is defined to accept parameters (strings, numbers, dates), you pass them here.
+   *
+   * Return Value
+   * It returns an integer value sent by the dialog when it closes. This allows the dialog to answer "Yes", "No", or send back a specific ID.
+   */
+  let SalModalDialog: (
+    templateName: any,
+    hWndOwner: any,
+    ...windowParameters: any[]
+  ) => number;
   /**
    * Returns remainder of division.
    * Result: nNumber1 % nNumber2
@@ -132,13 +226,36 @@ declare global {
   let SetRptPreview: (...args: any[]) => any;
 
   let SalSendClassMessage: (...args: any[]) => any;
-  let SalSendMsg: (...args: any[]) => any;
+  /**
+   * Used functions for inter-object communication. It sends a message to a specific window or object and waits for that object to process the message before returning.
+   *
+   * You can use it to:
+   * 1. Simulate user actions (like clicking a button programmatically).
+   * 2. Execute custom logic defined under User Defined Messages (like PM_UpdateCustomer).
+   * 3. Request data from another window (since SalSendMsg can return a value).
+   *
+   * Parameters:
+   * hWnd (Window Handle): The handle of the window or control you want to send the message to.
+   * nMsg (Number): The ID of the message. This can be a system message (e.g., SAM_Click) or a user-defined message (e.g., SAM_User + 1).
+   * nWParam (Number): The first parameter to pass to the message. If not needed, pass 0. You can retrieve this in the receiving window using the system variable wParam.
+   * nLParam (Number): The second parameter to pass. If not needed, pass 0. You can retrieve this in the receiving window using the system variable lParam.
+   *
+   * Return Value
+   * Number: The value returned by the window that processed the message. This allows the receiving window to send a "result" back to the sender.
+   */
+  let SalSendMsg: (
+    hWnd: any,
+    nMsg: number,
+    nWParam: number,
+    nLParam: number,
+  ) => number;
 
   let SalSetFocus: (...args: any[]) => any;
   let SalSetDefButton: (...args: any[]) => any;
   let SalSetMaxDataLength: (...args: any[]) => any;
   let SalSetWindowText: (...args: any[]) => any;
 
+  let SalShowWindow: (...args: any[]) => any;
   let SalStatusSetText: (...args: any[]) => any;
 
   /**
@@ -279,13 +396,35 @@ declare global {
     nMax: number,
   ) => void;
   /**
+   * It allows you to manipulate row properties such as whether the row is selected, hidden, marked as edited, or marked as new.
+   *
+   * Examples of Flags:
+   *
+   * - ROW_Selected:	Highlights the row (visual selection). Used to multi-select or single-select rows via code.
+   * - ROW_Hidden:	Hides the row from the user without removing it from memory.
+   * - ROW_Edited:	Marks the row as "dirty" (modified). This is crucial for database updates; SalTblUpdate looks for this flag.
+   * - ROW_New:	Marks the row as a newly inserted record (an INSERT rather than an UPDATE).
+   * - ROW_MarkDeleted:	Marks the row to be deleted from the database when SalTblUpdate is called.
+   * - ROW_Unselectable:	Prevents the user from selecting this specific row with the mouse or keyboard.
+   */
+  let SalTblSetRowFlags: (
+    hWndTbl: any,
+    nRow: number,
+    nFlags: number,
+    bSet: boolean,
+  ) => boolean;
+  /**
    * Turns specific table features on or off.
    *
    * Examples of Flags:
    * - TBL_Flag_SelectMultiple: Allows the user to select more than one row.
    * - TBL_Flag_SizableCols: Allows the user to resize column headers.
    */
-  let SalTblSetTableFlags: (hWndTbl: any, nFlags: number, bSet: boolean) => any;
+  let SalTblSetTableFlags: (
+    hWndTbl: any,
+    nFlags: number,
+    bSet: boolean,
+  ) => boolean;
   /**
    * Unlike an SQL ORDER BY clause (which sorts data before it reaches your application),
    * this function sorts data that is already populated in the table.
@@ -295,9 +434,22 @@ declare global {
    */
   let SalTblSortRows: (hWndTbl: any, hWndCol: any, nFlags: number) => boolean;
 
+  /**
+   * Initializes a timer for a specific window object. Once set, the system sends a SAM_Timer message to that window every time the specified time interval elapses.
+   *
+   * hWnd: The handle of the window or object that will receive the timer messages
+   * nIDEvent: A user-defined integer identifier for the timer. This is crucial if you have multiple timers running on the same window, as it allows you to distinguish which timer just fired.
+   * nElapse: The time-out value in milliseconds. For example, 1000 equals 1 second.
+   */
+  let SalTimerSet: (hWnd: any, nIDEvent: number, nElapse: number) => boolean;
+  /**
+   * Is the direct counterpart to {@link SalTimerSet} to stop a started timer.
+   */
+  let SalTimerKill: (hWnd: any, nIDEvent: number) => boolean;
   let SalTrackPopupMenu: (...args: any[]) => any;
   let SalUpdateWindow: (...args: any[]) => any;
   let SalWaitCursor: (...args: any[]) => any;
+  let SalWindowHandleToNumber: (...args: any[]) => any;
 
   // SQL functions
   /**

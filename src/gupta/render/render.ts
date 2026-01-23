@@ -2,6 +2,7 @@ import { type GuptaAstElem } from "../ast";
 import type { Context } from "../error";
 import { type GlobalDeclarations } from "../parse/global_declarations";
 import {
+  type GuptaAttributeSpec,
   type GuptaFile,
   type GuptaSpec,
   GuptaSpecType,
@@ -137,15 +138,30 @@ const renderWindowVars = (specs: GuptaWindowVarsSpec[]) => {
 
 const renderGlobals = (spec: GuptaSpec) => {
   if (spec.type !== GuptaSpecType.OBJECT) return "";
+
   if (spec.clazz === "Form Window") {
+    const className = spec.props.find(
+      (spec): spec is GuptaAttributeSpec =>
+        spec.type === GuptaSpecType.ATTRIBUTE && spec.name === "Class",
+    )?.value;
     return `\n\ndeclare global {
-  let ${spec.name}: typeof Form_Window["${spec.name}"];
+  /**
+   * {@link Form_Window.${spec.name}}
+   */
+  let ${spec.name}: ${className || `typeof Form_Window["${spec.name}"]`};
 }`;
   }
 
   if (spec.clazz === "Dialog Box") {
+    const className = spec.props.find(
+      (spec): spec is GuptaAttributeSpec =>
+        spec.type === GuptaSpecType.ATTRIBUTE && spec.name === "Class",
+    )?.value;
     return `\n\ndeclare global {
-  let ${spec.name}: typeof Dialog_Box["${spec.name}"];
+  /**
+   * {@link Dialog_Box.${spec.name}}
+   */
+  let ${spec.name}: ${className || `typeof Dialog_Box["${spec.name}"]`};
 }`;
   }
 
